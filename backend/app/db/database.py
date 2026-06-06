@@ -60,7 +60,9 @@ def get_pdf(pdf_id: str) -> dict | None:
 
 def list_pdfs() -> list[dict]:
     with _connect() as conn:
-        rows = conn.execute("SELECT * FROM pdfs ORDER BY created_at DESC").fetchall()
+        rows = conn.execute(
+            "SELECT * FROM pdfs ORDER BY created_at DESC, id DESC"
+        ).fetchall()
     return [dict(r) for r in rows]
 
 
