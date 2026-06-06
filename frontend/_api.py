@@ -142,6 +142,33 @@ def generate_questions(
         return None
 
 
+def generate_flashcards(
+    pdf_id: str,
+    count: int,
+    topic: str | None = None,
+    include_raw: bool = False,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/flashcards/generate",
+            json={
+                "pdf_id": pdf_id,
+                "count": count,
+                "topic": topic,
+                "include_raw": include_raw,
+            },
+            timeout=600,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.error(f"Flashcard generation failed: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Flashcard generation failed: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

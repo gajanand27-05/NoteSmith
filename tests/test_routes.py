@@ -171,3 +171,92 @@ def test_questions_include_raw_returns_text(client, monkeypatch):
     body = r.json()
     assert body["questions"] == []
     assert "Freeform" in body["raw_output"]
+
+
+def test_flashcards_invalid_count_422(client):
+    r = client.post(
+        "/api/flashcards/generate",
+        json={"pdf_id": "x", "count": 2},
+    )
+    assert r.status_code == 422
+    r = client.post(
+        "/api/flashcards/generate",
+        json={"pdf_id": "x", "count": 100},
+    )
+    assert r.status_code == 422
+
+
+def test_flashcards_nonexistent_pdf_404(client):
+    r = client.post(
+        "/api/flashcards/generate",
+        json={"pdf_id": "nope", "count": 10},
+    )
+    assert r.status_code == 404
+
+
+def test_flashcards_generate_with_mocked_llm(client, monkeypatch):
+    from app.api.routes import flashcards as flashcards_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("fmock1", "ftest.pdf", "/tmp/ftest.pdf", 1)
+
+    def fake_generate(pdf_id, count, topic=None):
+        return (
+            [
+                {
+                    "number": 1,
+                    "front": "What is NLP?",
+                    "back": "Natural Language Processing.",
+                    "topic": "",
+                },
+                {
+                    "number": 2,
+                    "front": "Define token.",
+                    "back": "A token is a unit of text.",
+                    "topic": "",
+                },
+            ],
+            "F1. What is NLP?\nB1. Natural Language Processing.\nF2. Define token.\nB2. A unit of text.",
+        )
+
+    monkeypatch.setattr(
+        flashcards_route.flashcard_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/flashcards/generate",
+        json={"pdf_id": "fmock1", "count": 5},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["flashcards"]) == 2
+    assert body["flashcards"][0]["front"] == "What is NLP?"
+    assert body["raw_output"] == ""
+
+
+def test_flashcards_include_raw_returns_text(client, monkeypatch):
+    from app.api.routes import flashcards as flashcards_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("fmock2", "ftest2.pdf", "/tmp/ftest2.pdf", 1)
+
+    def fake_generate(pdf_id, count, topic=None):
+        return (
+            [],
+            "F1. Freeform without B1.",
+        )
+
+    monkeypatch.setattr(
+        flashcards_route.flashcard_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/flashcards/generate",
+        json={"pdf_id": "fmock2", "count": 5, "include_raw": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["flashcards"] == []
+    assert "Freeform" in body["raw_output"]

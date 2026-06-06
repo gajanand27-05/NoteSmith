@@ -68,3 +68,23 @@ class QuestionResponse(BaseModel):
     marks: int
     questions: list[Question]
     raw_output: str = ""
+
+
+class Flashcard(BaseModel):
+    number: int
+    front: str
+    back: str
+    topic: str = ""
+
+
+class FlashcardRequest(BaseModel):
+    pdf_id: str
+    count: int = Field(default=20, ge=5, le=50)
+    topic: str | None = None
+    include_raw: bool = False
+
+
+class FlashcardResponse(BaseModel):
+    pdf_id: str
+    flashcards: list[Flashcard]
+    raw_output: str = ""

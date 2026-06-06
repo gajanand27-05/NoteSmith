@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, pdfs, qa, questions, summarize
+from app.api.routes import (
+    flashcards,
+    health,
+    pdfs,
+    qa,
+    questions,
+    summarize,
+)
 from app.config import settings
 from app.db import database
 
@@ -34,6 +41,7 @@ app.include_router(pdfs.router, prefix="/api/pdfs", tags=["pdfs"])
 app.include_router(summarize.router, prefix="/api/summarize", tags=["summarize"])
 app.include_router(qa.router, prefix="/api/qa", tags=["qa"])
 app.include_router(questions.router, prefix="/api/questions", tags=["questions"])
+app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcards"])
 
 
 @app.get("/")
