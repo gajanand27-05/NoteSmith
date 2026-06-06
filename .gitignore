@@ -37,6 +37,7 @@ data/chroma/*
 *.log
 logs/
 
+AGENTS.md
 .pytest_cache/
 .coverage
 htmlcov/
