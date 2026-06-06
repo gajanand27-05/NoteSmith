@@ -52,7 +52,8 @@ c3.metric("Total pages", sum(p.get("page_count", 0) for p in pdfs))
 
 st.divider()
 st.subheader("Get started")
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3 = st.columns(3)
+col4, col5, col6 = st.columns(3)
 with col1:
     st.markdown("**1. Upload**")
     st.write("Add your notes, syllabus, or question papers.")
@@ -73,6 +74,10 @@ with col5:
     st.markdown("**5. Flashcards**")
     st.write("Auto-generated study cards with flip UI.")
     st.page_link("pages/5_Flashcards.py", label="Go to Flashcards")
+with col6:
+    st.markdown("**6. Quiz**")
+    st.write("MCQ self-test with score and review.")
+    st.page_link("pages/6_Quiz.py", label="Go to Quiz")
 
 if not pdfs:
     st.divider()

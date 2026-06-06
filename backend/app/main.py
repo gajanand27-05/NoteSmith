@@ -9,6 +9,7 @@ from app.api.routes import (
     pdfs,
     qa,
     questions,
+    quiz,
     summarize,
 )
 from app.config import settings
@@ -42,6 +43,7 @@ app.include_router(summarize.router, prefix="/api/summarize", tags=["summarize"]
 app.include_router(qa.router, prefix="/api/qa", tags=["qa"])
 app.include_router(questions.router, prefix="/api/questions", tags=["questions"])
 app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcards"])
+app.include_router(quiz.router, prefix="/api/quiz", tags=["quiz"])
 
 
 @app.get("/")

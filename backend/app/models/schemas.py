@@ -88,3 +88,30 @@ class FlashcardResponse(BaseModel):
     pdf_id: str
     flashcards: list[Flashcard]
     raw_output: str = ""
+
+
+class QuizOption(BaseModel):
+    label: str
+    text: str
+
+
+class QuizQuestion(BaseModel):
+    number: int
+    question: str
+    options: list[QuizOption]
+    correct: str
+    explanation: str = ""
+
+
+class QuizRequest(BaseModel):
+    pdf_id: str
+    count: int = Field(default=10, ge=3, le=30)
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
+    topic: str | None = None
+    include_raw: bool = False
+
+
+class QuizResponse(BaseModel):
+    pdf_id: str
+    questions: list[QuizQuestion]
+    raw_output: str = ""

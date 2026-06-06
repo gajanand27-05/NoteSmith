@@ -260,3 +260,101 @@ def test_flashcards_include_raw_returns_text(client, monkeypatch):
     body = r.json()
     assert body["flashcards"] == []
     assert "Freeform" in body["raw_output"]
+
+
+def test_quiz_invalid_count_422(client):
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "x", "count": 2},
+    )
+    assert r.status_code == 422
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "x", "count": 50},
+    )
+    assert r.status_code == 422
+
+
+def test_quiz_invalid_difficulty_422(client):
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "x", "count": 5, "difficulty": "impossible"},
+    )
+    assert r.status_code == 422
+
+
+def test_quiz_nonexistent_pdf_404(client):
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "nope", "count": 5},
+    )
+    assert r.status_code == 404
+
+
+def test_quiz_generate_with_mocked_llm(client, monkeypatch):
+    from app.api.routes import quiz as quiz_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("qzmock1", "qztest.pdf", "/tmp/qztest.pdf", 1)
+
+    def fake_generate(pdf_id, count, difficulty="medium", topic=None):
+        return (
+            [
+                {
+                    "number": 1,
+                    "question": "What is NLP?",
+                    "options": [
+                        {"label": "A", "text": "A language"},
+                        {"label": "B", "text": "Natural Language Processing"},
+                        {"label": "C", "text": "A library"},
+                        {"label": "D", "text": "A database"},
+                    ],
+                    "correct": "B",
+                    "explanation": "NLP stands for Natural Language Processing.",
+                }
+            ],
+            "raw",
+        )
+
+    monkeypatch.setattr(
+        quiz_route.quiz_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "qzmock1", "count": 3, "difficulty": "easy"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert len(body["questions"]) == 1
+    assert body["questions"][0]["correct"] == "B"
+    assert body["questions"][0]["options"][1]["text"] == "Natural Language Processing"
+    assert body["raw_output"] == ""
+
+
+def test_quiz_include_raw_returns_text(client, monkeypatch):
+    from app.api.routes import quiz as quiz_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("qzmock2", "qztest2.pdf", "/tmp/qztest2.pdf", 1)
+
+    def fake_generate(pdf_id, count, difficulty="medium", topic=None):
+        return (
+            [],
+            "Q1. Freeform without options.",
+        )
+
+    monkeypatch.setattr(
+        quiz_route.quiz_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/quiz/generate",
+        json={"pdf_id": "qzmock2", "count": 5, "include_raw": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["questions"] == []
+    assert "Freeform" in body["raw_output"]

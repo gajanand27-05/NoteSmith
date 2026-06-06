@@ -169,6 +169,35 @@ def generate_flashcards(
         return None
 
 
+def generate_quiz(
+    pdf_id: str,
+    count: int,
+    difficulty: str = "medium",
+    topic: str | None = None,
+    include_raw: bool = False,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/quiz/generate",
+            json={
+                "pdf_id": pdf_id,
+                "count": count,
+                "difficulty": difficulty,
+                "topic": topic,
+                "include_raw": include_raw,
+            },
+            timeout=600,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.error(f"Quiz generation failed: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Quiz generation failed: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()
