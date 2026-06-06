@@ -198,6 +198,35 @@ def generate_quiz(
         return None
 
 
+def explain_concept(
+    concept: str,
+    level: str,
+    pdf_id: str | None = None,
+    include_example: bool = True,
+    include_follow_ups: bool = True,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/tutor/explain",
+            json={
+                "concept": concept,
+                "level": level,
+                "pdf_id": pdf_id,
+                "include_example": include_example,
+                "include_follow_ups": include_follow_ups,
+            },
+            timeout=300,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.error(f"Tutor failed: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Tutor failed: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

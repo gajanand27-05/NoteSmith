@@ -54,6 +54,7 @@ st.divider()
 st.subheader("Get started")
 col1, col2, col3 = st.columns(3)
 col4, col5, col6 = st.columns(3)
+col7, col8, col9 = st.columns(3)
 with col1:
     st.markdown("**1. Upload**")
     st.write("Add your notes, syllabus, or question papers.")
@@ -78,6 +79,10 @@ with col6:
     st.markdown("**6. Quiz**")
     st.write("MCQ self-test with score and review.")
     st.page_link("pages/6_Quiz.py", label="Go to Quiz")
+with col7:
+    st.markdown("**7. Tutor**")
+    st.write("Explain concepts at 6 depth levels.")
+    st.page_link("pages/10_Tutor.py", label="Go to Tutor")
 
 if not pdfs:
     st.divider()

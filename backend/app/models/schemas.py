@@ -115,3 +115,19 @@ class QuizResponse(BaseModel):
     pdf_id: str
     questions: list[QuizQuestion]
     raw_output: str = ""
+
+
+class TutorRequest(BaseModel):
+    concept: str = Field(min_length=1, max_length=200)
+    level: Literal["kid", "school", "high_school", "college", "engineering", "interview"]
+    pdf_id: str | None = None
+    include_example: bool = True
+    include_follow_ups: bool = True
+
+
+class TutorResponse(BaseModel):
+    concept: str
+    level: str
+    explanation: str
+    example: str = ""
+    follow_ups: list[str] = []

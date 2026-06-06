@@ -358,3 +358,78 @@ def test_quiz_include_raw_returns_text(client, monkeypatch):
     body = r.json()
     assert body["questions"] == []
     assert "Freeform" in body["raw_output"]
+
+
+def test_tutor_invalid_level_422(client):
+    r = client.post(
+        "/api/tutor/explain",
+        json={"concept": "Bayes Theorem", "level": "wizard"},
+    )
+    assert r.status_code == 422
+
+
+def test_tutor_concept_required_422(client):
+    r = client.post(
+        "/api/tutor/explain",
+        json={"level": "college"},
+    )
+    assert r.status_code == 422
+
+
+def test_tutor_concept_too_long_422(client):
+    r = client.post(
+        "/api/tutor/explain",
+        json={"concept": "x" * 201, "level": "college"},
+    )
+    assert r.status_code == 422
+
+
+def test_tutor_explain_with_mocked_service(client, monkeypatch):
+    from app.api.routes import tutor as tutor_route
+
+    def fake_explain(concept, level, pdf_id=None, include_example=True, include_follow_ups=True):
+        return {
+            "concept": concept,
+            "level": level,
+            "explanation": f"Simple explanation of {concept}.",
+            "example": "An example.",
+            "follow_ups": ["Follow-up 1?", "Follow-up 2?", "Follow-up 3?"],
+        }
+
+    monkeypatch.setattr(tutor_route.tutor, "explain", fake_explain)
+
+    r = client.post(
+        "/api/tutor/explain",
+        json={"concept": "Bayes Theorem", "level": "college"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["concept"] == "Bayes Theorem"
+    assert body["level"] == "college"
+    assert "Bayes Theorem" in body["explanation"]
+    assert body["example"] == "An example."
+    assert len(body["follow_ups"]) == 3
+
+
+def test_tutor_explain_with_missing_pdf_404(client, monkeypatch):
+    from app.api.routes import tutor as tutor_route
+
+    def fake_explain(concept, level, pdf_id=None, include_example=True, include_follow_ups=True):
+        from app.db import database
+        if not database.get_pdf(pdf_id):
+            raise HTTPException(404, "PDF not found")
+        return {
+            "concept": concept,
+            "level": level,
+            "explanation": "x",
+            "example": "",
+            "follow_ups": [],
+        }
+
+    monkeypatch.setattr(tutor_route.tutor, "explain", fake_explain)
+
+    r = client.post(
+        "/api/tutor/explain",
+        json={"concept": "Tokenization", "level": "kid", "pdf_id": "nonexistent"},
+    )
+    assert r.status_code == 404
