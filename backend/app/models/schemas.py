@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -43,3 +45,26 @@ class QAResponse(BaseModel):
     question: str
     answer: str
     sources: list[QASource] = []
+
+
+class Question(BaseModel):
+    number: int
+    marks: int
+    question: str
+    answer: str
+    topic: str = ""
+
+
+class QuestionRequest(BaseModel):
+    pdf_id: str
+    marks: Literal[2, 5, 10]
+    count: int = Field(default=5, ge=1, le=15)
+    topic: str | None = None
+    include_raw: bool = False
+
+
+class QuestionResponse(BaseModel):
+    pdf_id: str
+    marks: int
+    questions: list[Question]
+    raw_output: str = ""

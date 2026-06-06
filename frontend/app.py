@@ -52,7 +52,7 @@ c3.metric("Total pages", sum(p.get("page_count", 0) for p in pdfs))
 
 st.divider()
 st.subheader("Get started")
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.markdown("**1. Upload**")
     st.write("Add your notes, syllabus, or question papers.")
@@ -65,6 +65,10 @@ with col3:
     st.markdown("**3. Ask**")
     st.write("Get exam-style answers from your notes.")
     st.page_link("pages/3_QA.py", label="Go to Q&A")
+with col4:
+    st.markdown("**4. Questions**")
+    st.write("Generate 2, 5, 10-mark exam questions.")
+    st.page_link("pages/4_Questions.py", label="Go to Questions")
 
 if not pdfs:
     st.divider()

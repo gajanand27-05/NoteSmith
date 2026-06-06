@@ -113,6 +113,35 @@ def ask_question(pdf_id: str, question: str, top_k: int = 5) -> dict | None:
         return None
 
 
+def generate_questions(
+    pdf_id: str,
+    marks: int,
+    count: int,
+    topic: str | None = None,
+    include_raw: bool = False,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/questions/generate",
+            json={
+                "pdf_id": pdf_id,
+                "marks": marks,
+                "count": count,
+                "topic": topic,
+                "include_raw": include_raw,
+            },
+            timeout=600,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.error(f"Question generation failed: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Question generation failed: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

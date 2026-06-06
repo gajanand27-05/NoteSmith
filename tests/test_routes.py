@@ -78,3 +78,96 @@ def test_summarize_on_nonexistent_pdf_404(client):
         json={"pdf_id": "nope", "length": "short"},
     )
     assert r.status_code == 404
+
+
+def test_questions_invalid_marks_422(client):
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "x", "marks": 7, "count": 3},
+    )
+    assert r.status_code == 422
+
+
+def test_questions_invalid_count_422(client):
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "x", "marks": 5, "count": 0},
+    )
+    assert r.status_code == 422
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "x", "marks": 5, "count": 99},
+    )
+    assert r.status_code == 422
+
+
+def test_questions_nonexistent_pdf_404(client):
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "nope", "marks": 5, "count": 3},
+    )
+    assert r.status_code == 404
+
+
+def test_questions_generate_with_mocked_llm(client, monkeypatch):
+    from app.api.routes import questions as questions_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("qmock1", "qtest.pdf", "/tmp/qtest.pdf", 1)
+
+    def fake_generate(pdf_id, marks, count, topic=None):
+        return (
+            [
+                {
+                    "number": 1,
+                    "marks": marks,
+                    "question": "What is NLP?",
+                    "answer": "Natural Language Processing.",
+                    "topic": "",
+                }
+            ],
+            "Q1. What is NLP?\nA1. Natural Language Processing.",
+        )
+
+    monkeypatch.setattr(
+        questions_route.question_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "qmock1", "marks": 2, "count": 1},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["marks"] == 2
+    assert len(body["questions"]) == 1
+    assert body["questions"][0]["question"] == "What is NLP?"
+    assert body["raw_output"] == ""
+
+
+def test_questions_include_raw_returns_text(client, monkeypatch):
+    from app.api.routes import questions as questions_route
+    from app.db import database
+
+    database.init_db()
+    database.create_pdf("qmock2", "qtest2.pdf", "/tmp/qtest2.pdf", 1)
+
+    def fake_generate(pdf_id, marks, count, topic=None):
+        return (
+            [],
+            "Q1. Freeform without A1.",
+        )
+
+    monkeypatch.setattr(
+        questions_route.question_gen, "generate", fake_generate
+    )
+
+    r = client.post(
+        "/api/questions/generate",
+        json={"pdf_id": "qmock2", "marks": 5, "count": 1, "include_raw": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["questions"] == []
+    assert "Freeform" in body["raw_output"]
