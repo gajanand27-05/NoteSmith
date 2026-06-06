@@ -1,0 +1,31 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    app_name: str = "NoteSmith"
+    debug: bool = False
+
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_chat_model: str = "llama3.1:8b"
+    ollama_embed_model: str = "nomic-embed-text"
+
+    chroma_persist_dir: str = "./data/chroma"
+    upload_dir: str = "./data/uploads"
+
+    chunk_size: int = 1000
+    chunk_overlap: int = 200
+
+    cors_origins: list[str] = [
+        "http://localhost:8501",
+        "http://localhost:3000",
+    ]
+
+
+settings = Settings()

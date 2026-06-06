@@ -1,0 +1,83 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import requests
+import streamlit as st
+
+from _api import API_URL, health, list_pdfs, ollama_status
+
+st.set_page_config(
+    page_title="NoteSmith",
+    page_icon=None,
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.title("NoteSmith")
+st.caption("AI Study Companion - Turn PDFs into exam-ready preparation.")
+
+with st.sidebar:
+    st.header("Status")
+    h = health()
+    st.write("Backend:", "online" if h else "offline")
+    o = ollama_status()
+    if o:
+        st.write("Ollama:", "online" if o["available"] else "offline")
+        if o["available"]:
+            st.write(f"Chat: `{o['chat_model']}`")
+            st.write(f"Embed: `{o['embed_model']}`")
+            if not o["chat_model_pulled"]:
+                st.warning(
+                    f"Chat model not pulled. Run:\n`ollama pull {o['chat_model']}`"
+                )
+            if not o["embed_model_pulled"]:
+                st.warning(
+                    f"Embed model not pulled. Run:\n`ollama pull {o['embed_model']}`"
+                )
+    else:
+        st.write("Ollama: unknown")
+    st.divider()
+    st.caption(f"API: {API_URL}")
+
+st.subheader("Dashboard")
+pdfs = list_pdfs() if h else []
+c1, c2, c3 = st.columns(3)
+c1.metric("PDFs uploaded", len(pdfs))
+c2.metric("Total chunks", sum(p.get("chunk_count", 0) for p in pdfs))
+c3.metric("Total pages", sum(p.get("page_count", 0) for p in pdfs))
+
+st.divider()
+st.subheader("Get started")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("**1. Upload**")
+    st.write("Add your notes, syllabus, or question papers.")
+    st.page_link("pages/1_Upload.py", label="Go to Upload")
+with col2:
+    st.markdown("**2. Summarize**")
+    st.write("Get 1-page, 2-page, or 5-page summaries.")
+    st.page_link("pages/2_Summarize.py", label="Go to Summarize")
+with col3:
+    st.markdown("**3. Ask**")
+    st.write("Get exam-style answers from your notes.")
+    st.page_link("pages/3_QA.py", label="Go to Q&A")
+
+if not pdfs:
+    st.divider()
+    st.subheader("First time?")
+    st.markdown(
+        """
+1. Make sure Ollama is running: `ollama serve`
+2. Pull the models:
+   - `ollama pull llama3.1:8b`
+   - `ollama pull nomic-embed-text`
+3. Run `setup.bat` once to create the environment.
+4. Start the backend: `run_backend.bat`
+5. Start the frontend: `run_frontend.bat`
+6. Open http://localhost:8501
+"""
+    )
