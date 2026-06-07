@@ -30,6 +30,18 @@ class _FakeTable:
         self.last_filters.append((key, value))
         return self
 
+    def gte(self, *_a, **_kw):
+        return self
+
+    def lte(self, *_a, **_kw):
+        return self
+
+    def order(self, *_a, **_kw):
+        return self
+
+    def limit(self, *_a, **_kw):
+        return self
+
     def execute(self):
         class _Res:
             def __init__(self, data):
@@ -316,3 +328,126 @@ def test_get_overall_weakness_aggregates(configured, monkeypatch):
     assert out["attempts"] == 2
     assert out["topic_count"] == 2
     assert 0.0 < out["accuracy"] < 1.0
+
+
+def test_get_streak_empty_when_unconfigured(unconfigured):
+    assert learning_loop.get_streak() == {"current": 0, "best": 0, "today_active": False, "last_active": None}
+
+
+def test_get_streak_empty_when_no_data(configured, monkeypatch):
+    monkeypatch.setattr(learning_loop, "get_activity_days", lambda *a, **kw: set())
+    out = learning_loop.get_streak()
+    assert out["current"] == 0
+    assert out["best"] == 0
+    assert out["today_active"] is False
+
+
+def test_get_streak_counts_consecutive_days(configured, monkeypatch):
+    from datetime import date, timedelta
+
+    today = datetime.now(timezone.utc).date()
+    days = {today, today - timedelta(days=1), today - timedelta(days=2)}
+    monkeypatch.setattr(learning_loop, "get_activity_days", lambda *a, **kw: days)
+    out = learning_loop.get_streak()
+    assert out["current"] == 3
+    assert out["best"] == 3
+    assert out["today_active"] is True
+
+
+def test_get_streak_falls_back_to_yesterday_if_today_quiet(configured, monkeypatch):
+    from datetime import date, timedelta
+
+    today = datetime.now(timezone.utc).date()
+    days = {today - timedelta(days=1), today - timedelta(days=2)}
+    monkeypatch.setattr(learning_loop, "get_activity_days", lambda *a, **kw: days)
+    out = learning_loop.get_streak()
+    assert out["current"] == 2
+    assert out["today_active"] is False
+
+
+def test_get_streak_zero_if_gap_before_yesterday(configured, monkeypatch):
+    from datetime import date, timedelta
+
+    today = datetime.now(timezone.utc).date()
+    days = {today - timedelta(days=3), today - timedelta(days=4)}
+    monkeypatch.setattr(learning_loop, "get_activity_days", lambda *a, **kw: days)
+    out = learning_loop.get_streak()
+    assert out["current"] == 0
+    assert out["best"] == 2
+
+
+def test_get_streak_detects_longest_run(configured, monkeypatch):
+    from datetime import date, timedelta
+
+    today = datetime.now(timezone.utc).date()
+    days = {
+        today,
+        today - timedelta(days=1),
+        today - timedelta(days=2),
+        today - timedelta(days=10),
+        today - timedelta(days=11),
+        today - timedelta(days=12),
+    }
+    monkeypatch.setattr(learning_loop, "get_activity_days", lambda *a, **kw: days)
+    out = learning_loop.get_streak()
+    assert out["current"] == 3
+    assert out["best"] == 3
+
+
+def test_get_activity_counts_unconfigured(unconfigured):
+    out = learning_loop.get_activity_counts("p1")
+    assert out == {"quiz_attempts": 0, "flashcard_reviews": 0, "tutor_sessions": 0}
+
+
+def test_get_last_activity_returns_most_recent(configured, monkeypatch):
+    quiz = _FakeTable(rows=[{"ts": _ts(2)}])
+    fc = _FakeTable(rows=[{"ts": _ts(1)}])
+    tutor = _FakeTable(rows=[{"ts": _ts(3)}])
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient(
+            {"quiz_attempts": quiz, "flashcard_reviews": fc, "tutor_sessions": tutor}
+        ),
+    )
+    out = learning_loop.get_last_activity("p1")
+    assert out is not None
+    parsed = learning_loop._parse_ts(out)
+    assert (datetime.now(timezone.utc) - parsed).total_seconds() < 86400 * 4
+
+
+def test_get_last_activity_unconfigured(unconfigured):
+    assert learning_loop.get_last_activity("p1") is None
+
+
+def test_get_accuracy_in_window_aggregates(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"score": 3, "total": 4},
+            {"score": 2, "total": 2},
+        ]
+    )
+    fc = _FakeTable(rows=[{"correct": True}, {"correct": False}])
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": fc}),
+    )
+    out = learning_loop.get_accuracy_in_window("p1", start_days_ago=7, end_days_ago=0)
+    assert out is not None
+    assert out == pytest.approx(6 / 8)
+
+
+def test_get_accuracy_in_window_none_when_empty(configured, monkeypatch):
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient(
+            {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable()}
+        ),
+    )
+    assert learning_loop.get_accuracy_in_window("p1", start_days_ago=7, end_days_ago=0) is None
+
+
+def test_get_accuracy_in_window_unconfigured(unconfigured):
+    assert learning_loop.get_accuracy_in_window("p1", 7) is None

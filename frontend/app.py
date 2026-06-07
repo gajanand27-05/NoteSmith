@@ -84,13 +84,13 @@ with col7:
     st.write("Drill weak topics, track progress, close the loop.")
     st.page_link("pages/0_Study_Loop.py", label="Go to Study Loop")
 with col8:
-    st.markdown("**8. Tutor**")
+    st.markdown("**8. Dashboard**")
+    st.write("Mastery, readiness, streak, and topic breakdown.")
+    st.page_link("pages/8_Dashboard.py", label="Go to Dashboard")
+with col9:
+    st.markdown("**9. Tutor**")
     st.write("Explain concepts at 6 depth levels.")
     st.page_link("pages/10_Tutor.py", label="Go to Tutor")
-with col9:
-    st.markdown("**9. Paper Analyzer**")
-    st.write("Topic frequency + predicted questions from past papers.")
-    st.page_link("pages/7_Paper_Analyzer.py", label="Go to Paper Analyzer")
 
 if not pdfs:
     st.divider()

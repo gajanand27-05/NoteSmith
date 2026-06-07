@@ -348,6 +348,52 @@ def get_weak_topics(pdf_id: str, days: int = 30) -> dict | None:
         return None
 
 
+def get_dashboard_overall(days: int = 30) -> dict | None:
+    try:
+        r = requests.get(
+            f"{API_URL}/api/dashboard/overall",
+            params={"days": days},
+            timeout=30,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 503:
+            st.warning(
+                "Dashboard is disabled: Supabase is not configured."
+            )
+        else:
+            st.warning(f"Could not load dashboard: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Could not load dashboard: {e}")
+        return None
+
+
+def get_dashboard_pdf(pdf_id: str, days: int = 30) -> dict | None:
+    try:
+        r = requests.get(
+            f"{API_URL}/api/dashboard/pdf/{pdf_id}",
+            params={"days": days},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            st.error("PDF not found.")
+        elif e.response is not None and e.response.status_code == 503:
+            st.warning(
+                "Dashboard is disabled: Supabase is not configured."
+            )
+        else:
+            st.warning(f"Could not load PDF dashboard: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Could not load PDF dashboard: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

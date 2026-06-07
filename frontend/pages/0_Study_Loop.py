@@ -40,7 +40,13 @@ if not pdfs:
     st.stop()
 
 options = {f"{p['original_name']}  -  {p['page_count']}p": p["id"] for p in pdfs}
-label = st.selectbox("Select a PDF", list(options.keys()))
+preselect = st.query_params.get("pdf_id")
+default_index = 0
+if preselect and preselect in options.values():
+    default_index = list(options.values()).index(preselect)
+label = st.selectbox(
+    "Select a PDF", list(options.keys()), index=default_index
+)
 pdf_id = options[label]
 
 if "loop_drill_topic" not in st.session_state:
