@@ -6,6 +6,10 @@ DEFAULT_LOOKBACK_DAYS = 30
 RECENT_WEIGHT = 2
 RECENT_WINDOW_DAYS = 7
 
+QUIZ_WEIGHT = 1.0
+FLASHCARD_WEIGHT = 0.6
+TUTOR_WEIGHT = 0.3
+
 
 def _parse_ts(ts: str) -> datetime:
     if ts.endswith("Z"):
@@ -15,6 +19,12 @@ def _parse_ts(ts: str) -> datetime:
 
 def _is_configured() -> bool:
     return supabase.is_configured()
+
+
+def _recent_multiplier(ts: datetime) -> int:
+    if ts >= datetime.now(timezone.utc) - timedelta(days=RECENT_WINDOW_DAYS):
+        return RECENT_WEIGHT
+    return 1
 
 
 def record_quiz_attempt(pdf_id: str, topic: str | None, score: int, total: int) -> dict:
@@ -87,10 +97,12 @@ def compute_weak_topics(
     pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS
 ) -> list[dict]:
     """Per-topic weakness from quiz attempts + flashcard reviews within
-    the last `days` days. Recent (last 7 days) rows count 2x.
+    the last `days` days. Recent (last 7 days) rows count 2x. Quiz
+    rows contribute at full weight (1.0); flashcard rows at 0.6.
 
     Returns a list of {topic, accuracy, weakness, attempts, quiz_count, flashcard_count}
-    sorted by weakness desc, then attempts desc. Topics with no data are excluded.
+    where `attempts` is the raw count (1 per row, regardless of weight)
+    and `accuracy` is computed against the weighted totals.
     """
     if not _is_configured():
         return []
@@ -109,7 +121,6 @@ def compute_weak_topics(
     )
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    recent_cutoff = datetime.now(timezone.utc) - timedelta(days=RECENT_WINDOW_DAYS)
 
     stats: dict[str, dict] = {}
     for r in quiz.data or []:
@@ -123,9 +134,9 @@ def compute_weak_topics(
         s = stats.setdefault(
             t, {"correct": 0.0, "total": 0.0, "quiz_count": 0, "flashcard_count": 0}
         )
-        weight = RECENT_WEIGHT if ts >= recent_cutoff else 1
-        s["correct"] += float(r["score"]) * weight
-        s["total"] += float(r["total"]) * weight
+        rw = _recent_multiplier(ts)
+        s["correct"] += float(r["score"]) * QUIZ_WEIGHT * rw
+        s["total"] += float(r["total"]) * QUIZ_WEIGHT * rw
         s["quiz_count"] += 1
 
     for r in fc.data or []:
@@ -139,9 +150,9 @@ def compute_weak_topics(
         s = stats.setdefault(
             t, {"correct": 0.0, "total": 0.0, "quiz_count": 0, "flashcard_count": 0}
         )
-        weight = RECENT_WEIGHT if ts >= recent_cutoff else 1
-        s["correct"] += (1.0 if r["correct"] else 0.0) * weight
-        s["total"] += weight
+        rw = _recent_multiplier(ts)
+        s["correct"] += (1.0 if r["correct"] else 0.0) * FLASHCARD_WEIGHT * rw
+        s["total"] += FLASHCARD_WEIGHT * rw
         s["flashcard_count"] += 1
 
     out: list[dict] = []
@@ -163,21 +174,96 @@ def compute_weak_topics(
     return out
 
 
-def get_overall_weakness(pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS) -> dict | None:
-    """Single number for a PDF (across all topics)."""
-    topics = compute_weak_topics(pdf_id, days=days)
-    if not topics:
+def compute_pdf_mastery(pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS) -> dict | None:
+    """Per-PDF mastery including tutor weight. Quiz (1.0), flashcard
+    (0.6), and tutor (0.3) all contribute; tutor sessions get full
+    engagement credit at 0.3 weight (no quiz-style correctness).
+    Returns None if no data, otherwise {accuracy, weakness, weighted_total, raw_count}.
+    """
+    if not _is_configured():
         return None
-    total_correct = sum(t["accuracy"] * t["attempts"] for t in topics)
-    total_attempts = sum(t["attempts"] for t in topics)
-    if total_attempts == 0:
+    client = supabase.get_client()
+    cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    correct = 0.0
+    weighted = 0.0
+    raw_count = 0
+
+    quiz = (
+        client.table("quiz_attempts")
+        .select("score,total,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff_iso)
+        .execute()
+    )
+    for r in quiz.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        rw = _recent_multiplier(ts)
+        correct += float(r["score"]) * QUIZ_WEIGHT * rw
+        weighted += float(r["total"]) * QUIZ_WEIGHT * rw
+        raw_count += 1
+
+    fc = (
+        client.table("flashcard_reviews")
+        .select("correct,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff_iso)
+        .execute()
+    )
+    for r in fc.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        rw = _recent_multiplier(ts)
+        correct += (1.0 if r["correct"] else 0.0) * FLASHCARD_WEIGHT * rw
+        weighted += FLASHCARD_WEIGHT * rw
+        raw_count += 1
+
+    tutor = (
+        client.table("tutor_sessions")
+        .select("id,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff_iso)
+        .execute()
+    )
+    for r in tutor.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        rw = _recent_multiplier(ts)
+        correct += TUTOR_WEIGHT * rw
+        weighted += TUTOR_WEIGHT * rw
+        raw_count += 1
+
+    if weighted <= 0:
         return None
-    accuracy = total_correct / total_attempts
+    accuracy = correct / weighted
     return {
         "pdf_id": pdf_id,
         "accuracy": round(accuracy, 4),
         "weakness": round(1 - accuracy, 4),
-        "attempts": total_attempts,
+        "weighted_total": round(weighted, 4),
+        "raw_count": raw_count,
+    }
+
+
+def get_overall_weakness(pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS) -> dict | None:
+    """Per-PDF mastery number (includes tutor weight) + topic_count from
+    quiz/flashcard topic labels."""
+    mastery = compute_pdf_mastery(pdf_id, days=days)
+    if mastery is None:
+        return None
+    topics = compute_weak_topics(pdf_id, days=days)
+    return {
+        "pdf_id": pdf_id,
+        "accuracy": mastery["accuracy"],
+        "weakness": mastery["weakness"],
+        "attempts": mastery["raw_count"],
         "topic_count": len(topics),
     }
 
@@ -252,8 +338,9 @@ def get_last_activity(pdf_id: str) -> str | None:
 def get_accuracy_in_window(
     pdf_id: str, start_days_ago: int, end_days_ago: int = 0
 ) -> float | None:
-    """Accuracy (0-1) across all tracked activity for this PDF in the
-    window (start_days_ago, end_days_ago]. None if no data."""
+    """Weighted accuracy (0-1) across all tracked activity for this PDF
+    in the window (start_days_ago, end_days_ago]. None if no data.
+    Quiz rows weight 1.0, flashcard rows 0.6, tutor rows 0.3."""
     if not _is_configured():
         return None
     client = supabase.get_client()
@@ -273,8 +360,8 @@ def get_accuracy_in_window(
         .execute()
     )
     for r in quiz.data or []:
-        correct += float(r["score"])
-        total += float(r["total"])
+        correct += float(r["score"]) * QUIZ_WEIGHT
+        total += float(r["total"]) * QUIZ_WEIGHT
 
     fc = (
         client.table("flashcard_reviews")
@@ -285,8 +372,21 @@ def get_accuracy_in_window(
         .execute()
     )
     for r in fc.data or []:
-        correct += 1.0 if r["correct"] else 0.0
-        total += 1.0
+        correct += (1.0 if r["correct"] else 0.0) * FLASHCARD_WEIGHT
+        total += FLASHCARD_WEIGHT
+
+    tutor = (
+        client.table("tutor_sessions")
+        .select("id")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", start_iso)
+        .lte("ts", end_iso)
+        .execute()
+    )
+    tutor_count = len(tutor.data or [])
+    if tutor_count:
+        correct += tutor_count * TUTOR_WEIGHT
+        total += tutor_count * TUTOR_WEIGHT
 
     if total == 0:
         return None
@@ -378,12 +478,10 @@ def compute_topic_improvement(
     recent_days: int = 7,
     prior_days: int = 30,
 ) -> list[dict]:
-    """Per-topic accuracy delta between the recent window and the prior
-    window. Only topics with activity in BOTH windows and a positive
-    improvement are returned. Sorted by improvement desc.
-
-    A topic needs at least one quiz attempt or flashcard review in each
-    window for the delta to be meaningful.
+    """Per-topic weighted accuracy delta between the recent window and
+    the prior window. Quiz at 1.0, flashcard at 0.6. Only topics with
+    activity in BOTH windows and a positive improvement are returned.
+    Sorted by improvement desc.
     """
     if not _is_configured():
         return []
@@ -430,7 +528,7 @@ def compute_topic_improvement(
             },
         )
         kind = "recent" if ts >= recent_cutoff else "prior"
-        _acc(s, kind, float(r["score"]), float(r["total"]))
+        _acc(s, kind, float(r["score"]) * QUIZ_WEIGHT, float(r["total"]) * QUIZ_WEIGHT)
 
     for r in fc.data or []:
         try:
@@ -448,7 +546,12 @@ def compute_topic_improvement(
             },
         )
         kind = "recent" if ts >= recent_cutoff else "prior"
-        _acc(s, kind, 1.0 if r["correct"] else 0.0, 1.0)
+        _acc(
+            s,
+            kind,
+            (1.0 if r["correct"] else 0.0) * FLASHCARD_WEIGHT,
+            FLASHCARD_WEIGHT,
+        )
 
     out: list[dict] = []
     for topic, s in by_topic.items():

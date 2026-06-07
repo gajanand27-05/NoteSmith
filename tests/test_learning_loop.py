@@ -59,6 +59,12 @@ class _FakeClient:
         return self._tables[name]
 
 
+def _make_client(**tables: _FakeTable) -> _FakeClient:
+    base = {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable(), "tutor_sessions": _FakeTable()}
+    base.update(tables)
+    return _FakeClient(base)
+
+
 @pytest.fixture
 def configured(monkeypatch):
     monkeypatch.setattr(learning_loop.supabase, "is_configured", lambda: True)
@@ -72,7 +78,7 @@ def unconfigured(monkeypatch):
 def test_record_quiz_attempt_inserts_row(configured, monkeypatch):
     table = _FakeTable()
     monkeypatch.setattr(
-        learning_loop.supabase, "get_client", lambda: _FakeClient({"quiz_attempts": table})
+        learning_loop.supabase, "get_client", lambda: _make_client(quiz_attempts=table)
     )
     out = learning_loop.record_quiz_attempt("p1", "T", 4, 5)
     assert out["id"] == 1
@@ -87,7 +93,7 @@ def test_record_quiz_attempt_inserts_row(configured, monkeypatch):
 def test_record_quiz_attempt_null_topic(configured, monkeypatch):
     table = _FakeTable()
     monkeypatch.setattr(
-        learning_loop.supabase, "get_client", lambda: _FakeClient({"quiz_attempts": table})
+        learning_loop.supabase, "get_client", lambda: _make_client(quiz_attempts=table)
     )
     learning_loop.record_quiz_attempt("p1", None, 0, 3)
     assert table.last_insert["topic"] is None
@@ -95,7 +101,7 @@ def test_record_quiz_attempt_null_topic(configured, monkeypatch):
 
 def test_record_quiz_attempt_rejects_invalid_score(configured, monkeypatch):
     monkeypatch.setattr(
-        learning_loop.supabase, "get_client", lambda: _FakeClient({"quiz_attempts": _FakeTable()})
+        learning_loop.supabase, "get_client", lambda: _make_client(quiz_attempts=_FakeTable())
     )
     with pytest.raises(ValueError):
         learning_loop.record_quiz_attempt("p1", None, -1, 5)
@@ -115,7 +121,7 @@ def test_record_flashcard_review_inserts_row(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"flashcard_reviews": table}),
+        lambda: _make_client(flashcard_reviews=table),
     )
     out = learning_loop.record_flashcard_review("p1", "T", 3, True)
     assert table.last_insert == {
@@ -130,7 +136,7 @@ def test_record_flashcard_review_rejects_negative_index(configured, monkeypatch)
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(flashcard_reviews=_FakeTable()),
     )
     with pytest.raises(ValueError):
         learning_loop.record_flashcard_review("p1", None, -1, True)
@@ -139,7 +145,7 @@ def test_record_flashcard_review_rejects_negative_index(configured, monkeypatch)
 def test_record_tutor_session_inserts_row(configured, monkeypatch):
     table = _FakeTable()
     monkeypatch.setattr(
-        learning_loop.supabase, "get_client", lambda: _FakeClient({"tutor_sessions": table})
+        learning_loop.supabase, "get_client", lambda: _make_client(tutor_sessions=table)
     )
     out = learning_loop.record_tutor_session("p1", "Backprop", "college")
     assert table.last_insert == {
@@ -151,7 +157,7 @@ def test_record_tutor_session_inserts_row(configured, monkeypatch):
 
 def test_record_tutor_session_rejects_empty(configured, monkeypatch):
     monkeypatch.setattr(
-        learning_loop.supabase, "get_client", lambda: _FakeClient({"tutor_sessions": _FakeTable()})
+        learning_loop.supabase, "get_client", lambda: _make_client(tutor_sessions=_FakeTable())
     )
     with pytest.raises(ValueError):
         learning_loop.record_tutor_session("p1", "", "college")
@@ -180,7 +186,7 @@ def test_compute_weak_topics_aggregates_quiz_and_flashcards(configured, monkeypa
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": fc}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=fc),
     )
     out = learning_loop.compute_weak_topics("p1", days=30)
     by_topic = {t["topic"]: t for t in out}
@@ -209,7 +215,7 @@ def test_compute_weak_topics_drops_rows_outside_window(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": fc}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=fc),
     )
     out = learning_loop.compute_weak_topics("p1", days=30)
     assert len(out) == 1
@@ -228,7 +234,7 @@ def test_compute_weak_topics_sorts_by_weakness_desc(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_weak_topics("p1", days=30)
     assert [t["topic"] for t in out] == ["weak", "medium", "strong"]
@@ -243,7 +249,7 @@ def test_compute_weak_topics_treats_null_topic_as_overall(configured, monkeypatc
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_weak_topics("p1", days=30)
     assert len(out) == 1
@@ -265,16 +271,16 @@ def test_compute_weak_topics_recent_rows_get_double_weight(configured, monkeypat
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient(
-            {"quiz_attempts": quiz_recent, "flashcard_reviews": _FakeTable()}
+        lambda: _make_client(
+            quiz_attempts=quiz_recent, flashcard_reviews=_FakeTable()
         ),
     )
     out_recent = learning_loop.compute_weak_topics("p1", days=30)
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient(
-            {"quiz_attempts": quiz_old, "flashcard_reviews": _FakeTable()}
+        lambda: _make_client(
+            quiz_attempts=quiz_old, flashcard_reviews=_FakeTable()
         ),
     )
     out_old = learning_loop.compute_weak_topics("p1", days=30)
@@ -291,7 +297,7 @@ def test_compute_weak_topics_handles_bad_timestamp_gracefully(configured, monkey
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_weak_topics("p1", days=30)
     topics = {t["topic"] for t in out}
@@ -303,8 +309,8 @@ def test_get_overall_weakness_returns_none_when_empty(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient(
-            {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable()}
+        lambda: _make_client(
+            quiz_attempts=_FakeTable(), flashcard_reviews=_FakeTable()
         ),
     )
     assert learning_loop.get_overall_weakness("p1") is None
@@ -320,7 +326,7 @@ def test_get_overall_weakness_aggregates(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.get_overall_weakness("p1")
     assert out is not None
@@ -431,19 +437,23 @@ def test_get_accuracy_in_window_aggregates(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": fc}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=fc),
     )
     out = learning_loop.get_accuracy_in_window("p1", start_days_ago=7, end_days_ago=0)
     assert out is not None
-    assert out == pytest.approx(6 / 8)
+    # Quiz: (3+2)=5 correct, (4+2)=6 total, weight 1.0 -> 5/6
+    # Flashcard: 1 correct, 2 total, weight 0.6 -> 0.6/1.2
+    # Combined: (5+0.6)/(6+1.2) = 5.6/7.2
+    expected = (5.0 * 1.0 + 1.0 * 0.6) / (6.0 * 1.0 + 2.0 * 0.6)
+    assert out == pytest.approx(expected)
 
 
 def test_get_accuracy_in_window_none_when_empty(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient(
-            {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable()}
+        lambda: _make_client(
+            quiz_attempts=_FakeTable(), flashcard_reviews=_FakeTable()
         ),
     )
     assert learning_loop.get_accuracy_in_window("p1", start_days_ago=7, end_days_ago=0) is None
@@ -469,7 +479,7 @@ def test_compute_topic_improvement_returns_positive_deltas_only(configured, monk
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_topic_improvement("p1")
     assert len(out) == 1
@@ -488,7 +498,7 @@ def test_compute_topic_improvement_drops_one_sided_topics(configured, monkeypatc
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_topic_improvement("p1")
     assert out == []
@@ -506,7 +516,7 @@ def test_compute_topic_improvement_sorts_by_delta(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_topic_improvement("p1")
     assert [t["topic"] for t in out] == ["big", "small"]
@@ -530,7 +540,7 @@ def test_compute_most_neglected_ranks_by_recency(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
     assert len(out) == 2
@@ -547,7 +557,7 @@ def test_compute_most_neglected_drops_below_min_attempts(configured, monkeypatch
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
     assert out == []
@@ -563,7 +573,7 @@ def test_compute_most_neglected_reports_actual_gap(configured, monkeypatch):
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+        lambda: _make_client(quiz_attempts=quiz, flashcard_reviews=_FakeTable()),
     )
     out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
     assert 49 <= out[0]["days_since_last"] <= 50
@@ -575,8 +585,8 @@ def test_compute_most_neglected_caps_gap_at_window_when_no_recent(
     monkeypatch.setattr(
         learning_loop.supabase,
         "get_client",
-        lambda: _FakeClient(
-            {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable()}
+        lambda: _make_client(
+            quiz_attempts=_FakeTable(), flashcard_reviews=_FakeTable()
         ),
     )
     out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
