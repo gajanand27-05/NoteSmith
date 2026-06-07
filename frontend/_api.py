@@ -227,6 +227,33 @@ def explain_concept(
         return None
 
 
+def analyze_papers(
+    pdf_ids: list[str],
+    years: list[int] | None = None,
+    target_year: int | None = None,
+    num_predictions: int = 5,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/papers/analyze",
+            json={
+                "pdf_ids": pdf_ids,
+                "years": years,
+                "target_year": target_year,
+                "num_predictions": num_predictions,
+            },
+            timeout=600,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.error(f"Paper analysis failed: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.error(f"Paper analysis failed: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

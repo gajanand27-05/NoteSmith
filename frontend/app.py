@@ -83,6 +83,10 @@ with col7:
     st.markdown("**7. Tutor**")
     st.write("Explain concepts at 6 depth levels.")
     st.page_link("pages/10_Tutor.py", label="Go to Tutor")
+with col8:
+    st.markdown("**8. Paper Analyzer**")
+    st.write("Topic frequency + predicted questions from past papers.")
+    st.page_link("pages/7_Paper_Analyzer.py", label="Go to Paper Analyzer")
 
 if not pdfs:
     st.divider()

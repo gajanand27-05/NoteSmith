@@ -433,3 +433,109 @@ def test_tutor_explain_with_missing_pdf_404(client, monkeypatch):
         json={"concept": "Tokenization", "level": "kid", "pdf_id": "nonexistent"},
     )
     assert r.status_code == 404
+
+
+def test_papers_analyze_requires_two_pdfs_422(client):
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": ["only_one"]},
+    )
+    assert r.status_code == 422
+
+
+def test_papers_analyze_caps_at_ten_422(client):
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": [f"p{i}" for i in range(11)]},
+    )
+    assert r.status_code == 422
+
+
+def test_papers_analyze_num_predictions_bounds_422(client):
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": ["a", "b"], "num_predictions": 0},
+    )
+    assert r.status_code == 422
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": ["a", "b"], "num_predictions": 20},
+    )
+    assert r.status_code == 422
+
+
+def test_papers_analyze_with_mocked_service(client, monkeypatch):
+    from app.api.routes import papers as papers_route
+
+    def fake_analyze(pdf_ids, years=None, target_year=None, num_predictions=5):
+        return {
+            "papers": [
+                {
+                    "pdf_id": "p1",
+                    "filename": "qp1.pdf",
+                    "year": 2024,
+                    "question_count": 2,
+                    "questions": [
+                        {"number": 1, "text": "Q1", "marks": 5, "topic": "T", "year": 2024},
+                    ],
+                },
+                {
+                    "pdf_id": "p2",
+                    "filename": "qp2.pdf",
+                    "year": 2025,
+                    "question_count": 1,
+                    "questions": [],
+                },
+            ],
+            "topics": [
+                {
+                    "topic": "T",
+                    "count": 1,
+                    "years": [2024],
+                    "paper_ids": ["p1"],
+                    "trend": "stable",
+                }
+            ],
+            "predicted": [
+                {
+                    "number": 1,
+                    "question": "Predicted?",
+                    "topic": "T",
+                    "confidence": 0.8,
+                    "reasoning": "Common topic",
+                    "marks": 5,
+                }
+            ],
+            "target_year": 2026,
+        }
+
+    monkeypatch.setattr(papers_route.paper_analyzer, "analyze_papers", fake_analyze)
+
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": ["p1", "p2"], "years": [2024, 2025], "target_year": 2026},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["target_year"] == 2026
+    assert len(body["papers"]) == 2
+    assert body["papers"][0]["filename"] == "qp1.pdf"
+    assert len(body["topics"]) == 1
+    assert body["topics"][0]["topic"] == "T"
+    assert len(body["predicted"]) == 1
+    assert body["predicted"][0]["confidence"] == 0.8
+
+
+def test_papers_analyze_service_value_error_400(client, monkeypatch):
+    from app.api.routes import papers as papers_route
+
+    def fake_analyze(pdf_ids, years=None, target_year=None, num_predictions=5):
+        raise ValueError("Need at least 2 question papers")
+
+    monkeypatch.setattr(papers_route.paper_analyzer, "analyze_papers", fake_analyze)
+
+    r = client.post(
+        "/api/papers/analyze",
+        json={"pdf_ids": ["a", "b"]},
+    )
+    assert r.status_code == 400

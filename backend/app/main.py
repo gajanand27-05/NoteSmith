@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     flashcards,
     health,
+    papers,
     pdfs,
     qa,
     questions,
@@ -46,6 +47,7 @@ app.include_router(questions.router, prefix="/api/questions", tags=["questions"]
 app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcards"])
 app.include_router(quiz.router, prefix="/api/quiz", tags=["quiz"])
 app.include_router(tutor.router, prefix="/api/tutor", tags=["tutor"])
+app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 
 
 @app.get("/")

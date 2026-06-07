@@ -131,3 +131,50 @@ class TutorResponse(BaseModel):
     explanation: str
     example: str = ""
     follow_ups: list[str] = []
+
+
+class PaperQuestion(BaseModel):
+    number: int
+    text: str
+    marks: int
+    topic: str
+    year: int | None = None
+
+
+class PaperInfo(BaseModel):
+    pdf_id: str
+    filename: str
+    year: int | None = None
+    question_count: int = 0
+    questions: list[PaperQuestion] = []
+
+
+class TopicFrequency(BaseModel):
+    topic: str
+    count: int
+    years: list[int]
+    paper_ids: list[str]
+    trend: str
+
+
+class PredictedQuestion(BaseModel):
+    number: int
+    question: str
+    topic: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    reasoning: str
+    marks: int
+
+
+class PaperAnalysisRequest(BaseModel):
+    pdf_ids: list[str] = Field(min_length=2, max_length=10)
+    years: list[int] | None = None
+    target_year: int | None = None
+    num_predictions: int = Field(default=5, ge=1, le=15)
+
+
+class PaperAnalysisResponse(BaseModel):
+    papers: list[PaperInfo]
+    topics: list[TopicFrequency]
+    predicted: list[PredictedQuestion]
+    target_year: int
