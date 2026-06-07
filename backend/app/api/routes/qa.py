@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
+from app.core import rag_pipeline
 from app.db import database
 from app.models.schemas import QARequest, QAResponse, QASource
-from app.services import rag
 
 router = APIRouter()
 
@@ -12,7 +12,7 @@ def ask(req: QARequest) -> QAResponse:
     if not database.get_pdf(req.pdf_id):
         raise HTTPException(404, "PDF not found")
     try:
-        result = rag.answer_question(req.pdf_id, req.question, req.top_k)
+        result = rag_pipeline.answer_question(req.pdf_id, req.question, req.top_k)
     except Exception as e:
         raise HTTPException(500, f"Q&A failed: {e}")
     sources = [

@@ -1,7 +1,7 @@
 import re
 
+from app.core import retriever
 from app.core.llm import llm
-from app.core.vector_store import vector_store
 from app.db import database
 
 LEVEL_PROMPTS = {
@@ -84,7 +84,7 @@ def _retrieve_context(pdf_id: str, concept: str) -> str:
     row = database.get_pdf(pdf_id)
     if not row:
         return ""
-    chunks = vector_store.query(pdf_id, concept, top_k=3)
+    chunks = retriever.retrieve(pdf_id, concept, top_k=3)
     if not chunks:
         return ""
     return "\n\n---\n\n".join(c["text"] for c in chunks)

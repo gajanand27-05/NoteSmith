@@ -1,5 +1,5 @@
+from app.core import retriever
 from app.core.llm import llm
-from app.core.vector_store import vector_store
 
 SYSTEM_PROMPT = (
     "You are NoteSmith, a study assistant. Answer the student's question using ONLY "
@@ -9,16 +9,14 @@ SYSTEM_PROMPT = (
 
 
 def answer_question(pdf_id: str, question: str, top_k: int = 5) -> dict:
-    chunks = vector_store.query(pdf_id, question, top_k=top_k)
+    chunks = retriever.retrieve(pdf_id, question, top_k=top_k)
     if not chunks:
         return {
             "answer": "No relevant content found in the uploaded notes.",
             "sources": [],
         }
 
-    context_parts = []
-    for i, c in enumerate(chunks, 1):
-        context_parts.append(f"[Excerpt {i}]\n{c['text']}")
+    context_parts = [f"[Excerpt {i}]\n{c['text']}" for i, c in enumerate(chunks, 1)]
     context = "\n\n---\n\n".join(context_parts)
 
     messages = [

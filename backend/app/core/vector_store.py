@@ -3,7 +3,6 @@ from pathlib import Path
 import chromadb
 
 from app.config import settings
-from app.core.llm import llm
 
 
 class VectorStore:
@@ -21,11 +20,11 @@ class VectorStore:
         self,
         pdf_id: str,
         chunks: list[str],
+        embeddings: list[list[float]],
         metadatas: list[dict] | None = None,
     ) -> int:
         if not chunks:
             return 0
-        embeddings = llm.embed(chunks)
         collection = self._client.get_or_create_collection(
             name=self._collection_name(pdf_id),
             metadata={"hnsw:space": "cosine"},
@@ -39,13 +38,17 @@ class VectorStore:
         )
         return len(chunks)
 
-    def query(self, pdf_id: str, question: str, top_k: int = 5) -> list[dict]:
+    def query_by_embedding(
+        self,
+        pdf_id: str,
+        embedding: list[float],
+        top_k: int = 5,
+    ) -> list[dict]:
         collection = self._client.get_or_create_collection(
             name=self._collection_name(pdf_id),
             metadata={"hnsw:space": "cosine"},
         )
-        q_emb = llm.embed(question)
-        result = collection.query(query_embeddings=q_emb, n_results=top_k)
+        result = collection.query(query_embeddings=[embedding], n_results=top_k)
         docs = (result.get("documents") or [[]])[0] or []
         metas = (result.get("metadatas") or [[]])[0] or []
         dists = (result.get("distances") or [[]])[0] or []

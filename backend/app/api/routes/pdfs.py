@@ -6,6 +6,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.config import settings
 from app.core.chunker import chunk_text
+from app.core.embeddings import embed_texts
 from app.core.llm import llm
 from app.core.pdf_processor import PDFProcessor
 from app.core.vector_store import vector_store
@@ -70,8 +71,9 @@ async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
         )
 
     chunks = chunk_text(text)
+    chunk_embeddings = embed_texts(chunks)
     try:
-        vector_store.add_chunks(pdf_id, chunks)
+        vector_store.add_chunks(pdf_id, chunks, embeddings=chunk_embeddings)
     except Exception as e:
         stored_path.unlink(missing_ok=True)
         vector_store.delete_pdf(pdf_id)
