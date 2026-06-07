@@ -93,6 +93,50 @@ with p_col:
     st.caption(f"{total_attempts} attempts in window")
 
 
+most_improved = data.get("most_improved")
+most_neglected = data.get("most_neglected")
+if most_improved or most_neglected:
+    st.divider()
+    h_col, n_col = st.columns(2)
+    with h_col:
+        if most_improved:
+            mi = most_improved
+            topic = mi.get("topic") or "(overall)"
+            with st.container(border=True):
+                st.caption("Most Improved Topic")
+                st.markdown(
+                    f"**{topic}**  -  +{mi['improvement'] * 100:.0f}%"
+                )
+                st.caption(
+                    f"Was {mi['prior_accuracy'] * 100:.0f}% -> "
+                    f"now {mi['recent_accuracy'] * 100:.0f}% "
+                    f"({mi['recent_attempts']} recent attempts)"
+                )
+        else:
+            with st.container(border=True):
+                st.caption("Most Improved Topic")
+                st.markdown("Need at least 2 weeks of topic-tagged data.")
+    with n_col:
+        if most_neglected:
+            mn = most_neglected
+            topic = mn.get("topic") or "(overall)"
+            with st.container(border=True):
+                st.caption("Most Neglected Topic")
+                st.markdown(f"**{topic}**")
+                days = mn["days_since_last"]
+                if days == 0:
+                    st.caption("Active today")
+                elif days == 1:
+                    st.caption("No activity for 1 day")
+                else:
+                    st.caption(f"No activity for {days} days")
+                st.caption(f"{mn['total_attempts']} total attempts")
+        else:
+            with st.container(border=True):
+                st.caption("Most Neglected Topic")
+                st.markdown("No topic data yet.")
+
+
 pdfs = data.get("pdfs", [])
 if not pdfs:
     st.info("No PDFs uploaded yet.")
@@ -170,11 +214,27 @@ for d in pdfs:
                 f"Tutor: {d.get('tutor_sessions', 0)}"
             )
         with foot_cols[1]:
-            weak_count = sum(1 for t in topics if t["mastery"] < 0.6)
-            if weak_count > 0:
-                st.caption(f"{weak_count} weak topic(s) below 60%")
+            parts = []
+            mi = d.get("most_improved")
+            if mi:
+                parts.append(
+                    f"+{mi['improvement'] * 100:.0f}% on {mi.get('topic') or '(overall)'}"
+                )
+            mn = d.get("most_neglected")
+            if mn:
+                dn = mn["days_since_last"]
+                if dn > 0:
+                    parts.append(
+                        f"{mn.get('topic') or '(overall)'} stale {dn}d"
+                    )
+            if parts:
+                st.caption("  -  ".join(parts))
             else:
-                st.caption("All practiced topics at or above 60%")
+                weak_count = sum(1 for t in topics if t["mastery"] < 0.6)
+                if weak_count > 0:
+                    st.caption(f"{weak_count} weak topic(s) below 60%")
+                else:
+                    st.caption("All practiced topics at or above 60%")
         with foot_cols[2]:
             if st.button(
                 "Drill",

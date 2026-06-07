@@ -451,3 +451,133 @@ def test_get_accuracy_in_window_none_when_empty(configured, monkeypatch):
 
 def test_get_accuracy_in_window_unconfigured(unconfigured):
     assert learning_loop.get_accuracy_in_window("p1", 7) is None
+
+
+def test_compute_topic_improvement_unconfigured(unconfigured):
+    assert learning_loop.compute_topic_improvement("p1") == []
+
+
+def test_compute_topic_improvement_returns_positive_deltas_only(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"topic": "A", "score": 5, "total": 5, "ts": _ts(1)},
+            {"topic": "A", "score": 0, "total": 5, "ts": _ts(15)},
+            {"topic": "B", "score": 5, "total": 5, "ts": _ts(15)},
+            {"topic": "B", "score": 0, "total": 5, "ts": _ts(1)},
+        ]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_topic_improvement("p1")
+    assert len(out) == 1
+    assert out[0]["topic"] == "A"
+    assert out[0]["improvement"] == pytest.approx(1.0)
+    assert out[0]["prior_accuracy"] == 0.0
+    assert out[0]["recent_accuracy"] == 1.0
+
+
+def test_compute_topic_improvement_drops_one_sided_topics(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"topic": "A", "score": 5, "total": 5, "ts": _ts(1)},
+        ]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_topic_improvement("p1")
+    assert out == []
+
+
+def test_compute_topic_improvement_sorts_by_delta(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"topic": "small", "score": 1, "total": 2, "ts": _ts(1)},
+            {"topic": "small", "score": 0, "total": 2, "ts": _ts(15)},
+            {"topic": "big", "score": 2, "total": 2, "ts": _ts(1)},
+            {"topic": "big", "score": 1, "total": 2, "ts": _ts(15)},
+        ]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_topic_improvement("p1")
+    assert [t["topic"] for t in out] == ["big", "small"]
+    assert out[0]["improvement"] == pytest.approx(0.5)
+    assert out[1]["improvement"] == pytest.approx(0.5)
+
+
+def test_compute_most_neglected_unconfigured(unconfigured):
+    assert learning_loop.compute_most_neglected_topics("p1") == []
+
+
+def test_compute_most_neglected_ranks_by_recency(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"topic": "fresh", "score": 1, "total": 1, "ts": _ts(1)},
+            {"topic": "fresh", "score": 1, "total": 1, "ts": _ts(1)},
+            {"topic": "stale", "score": 1, "total": 1, "ts": _ts(30)},
+            {"topic": "stale", "score": 1, "total": 1, "ts": _ts(30)},
+        ]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
+    assert len(out) == 2
+    assert out[0]["topic"] == "stale"
+    assert out[0]["days_since_last"] >= 28
+    assert out[1]["topic"] == "fresh"
+    assert out[1]["days_since_last"] <= 2
+
+
+def test_compute_most_neglected_drops_below_min_attempts(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[{"topic": "A", "score": 1, "total": 1, "ts": _ts(30)}]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
+    assert out == []
+
+
+def test_compute_most_neglected_reports_actual_gap(configured, monkeypatch):
+    quiz = _FakeTable(
+        rows=[
+            {"topic": "A", "score": 1, "total": 1, "ts": _ts(50)},
+            {"topic": "A", "score": 1, "total": 1, "ts": _ts(55)},
+        ]
+    )
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient({"quiz_attempts": quiz, "flashcard_reviews": _FakeTable()}),
+    )
+    out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
+    assert 49 <= out[0]["days_since_last"] <= 50
+
+
+def test_compute_most_neglected_caps_gap_at_window_when_no_recent(
+    configured, monkeypatch
+):
+    monkeypatch.setattr(
+        learning_loop.supabase,
+        "get_client",
+        lambda: _FakeClient(
+            {"quiz_attempts": _FakeTable(), "flashcard_reviews": _FakeTable()}
+        ),
+    )
+    out = learning_loop.compute_most_neglected_topics("p1", days=60, min_attempts=2)
+    assert out == []

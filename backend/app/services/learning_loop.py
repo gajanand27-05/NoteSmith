@@ -371,3 +371,184 @@ def get_streak(pdf_id: str | None = None, lookback_days: int = 365) -> dict:
         "today_active": today_active,
         "last_active": max(days).isoformat(),
     }
+
+
+def compute_topic_improvement(
+    pdf_id: str,
+    recent_days: int = 7,
+    prior_days: int = 30,
+) -> list[dict]:
+    """Per-topic accuracy delta between the recent window and the prior
+    window. Only topics with activity in BOTH windows and a positive
+    improvement are returned. Sorted by improvement desc.
+
+    A topic needs at least one quiz attempt or flashcard review in each
+    window for the delta to be meaningful.
+    """
+    if not _is_configured():
+        return []
+    client = supabase.get_client()
+    now = datetime.now(timezone.utc)
+    prior_start = (now - timedelta(days=prior_days)).isoformat()
+
+    quiz = (
+        client.table("quiz_attempts")
+        .select("topic,score,total,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", prior_start)
+        .execute()
+    )
+    fc = (
+        client.table("flashcard_reviews")
+        .select("topic,correct,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", prior_start)
+        .execute()
+    )
+
+    recent_cutoff = now - timedelta(days=recent_days)
+
+    by_topic: dict[str, dict] = {}
+
+    def _acc(s: dict, kind: str, correct: float, total: float) -> None:
+        s[f"{kind}_correct"] += correct
+        s[f"{kind}_total"] += total
+
+    for r in quiz.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        t = r.get("topic") or "_overall"
+        s = by_topic.setdefault(
+            t,
+            {
+                "recent_correct": 0.0,
+                "recent_total": 0.0,
+                "prior_correct": 0.0,
+                "prior_total": 0.0,
+            },
+        )
+        kind = "recent" if ts >= recent_cutoff else "prior"
+        _acc(s, kind, float(r["score"]), float(r["total"]))
+
+    for r in fc.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        t = r.get("topic") or "_overall"
+        s = by_topic.setdefault(
+            t,
+            {
+                "recent_correct": 0.0,
+                "recent_total": 0.0,
+                "prior_correct": 0.0,
+                "prior_total": 0.0,
+            },
+        )
+        kind = "recent" if ts >= recent_cutoff else "prior"
+        _acc(s, kind, 1.0 if r["correct"] else 0.0, 1.0)
+
+    out: list[dict] = []
+    for topic, s in by_topic.items():
+        if s["recent_total"] <= 0 or s["prior_total"] <= 0:
+            continue
+        recent_acc = s["recent_correct"] / s["recent_total"]
+        prior_acc = s["prior_correct"] / s["prior_total"]
+        delta = recent_acc - prior_acc
+        if delta <= 0:
+            continue
+        out.append(
+            {
+                "topic": None if topic == "_overall" else topic,
+                "recent_accuracy": round(recent_acc, 4),
+                "prior_accuracy": round(prior_acc, 4),
+                "improvement": round(delta, 4),
+                "recent_attempts": int(s["recent_total"]),
+                "prior_attempts": int(s["prior_total"]),
+            }
+        )
+    out.sort(key=lambda x: (-x["improvement"], x["topic"] or ""))
+    return out
+
+
+def compute_most_neglected_topics(
+    pdf_id: str,
+    days: int = 60,
+    min_attempts: int = 2,
+) -> list[dict]:
+    """For each topic with at least `min_attempts` total attempts, find
+    the most recent activity timestamp and compute the gap in days.
+
+    Returns topics sorted by `days_since_last` desc (most neglected
+    first). Topics with no activity in the `days` window are included
+    with `last_activity` = None and `days_since_last` capped at `days`.
+
+    This is the input the Study Planner will use to schedule revision
+    for stale topics before they rot.
+    """
+    if not _is_configured():
+        return []
+    client = supabase.get_client()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    now = datetime.now(timezone.utc)
+
+    quiz = (
+        client.table("quiz_attempts")
+        .select("topic,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .execute()
+    )
+    fc = (
+        client.table("flashcard_reviews")
+        .select("topic,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .execute()
+    )
+
+    by_topic: dict[str, dict] = {}
+    for r in quiz.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        t = r.get("topic") or "_overall"
+        s = by_topic.setdefault(t, {"attempts": 0, "last_ts": None})
+        s["attempts"] += 1
+        if s["last_ts"] is None or ts > s["last_ts"]:
+            s["last_ts"] = ts
+    for r in fc.data or []:
+        try:
+            ts = _parse_ts(r["ts"])
+        except Exception:
+            continue
+        t = r.get("topic") or "_overall"
+        s = by_topic.setdefault(t, {"attempts": 0, "last_ts": None})
+        s["attempts"] += 1
+        if s["last_ts"] is None or ts > s["last_ts"]:
+            s["last_ts"] = ts
+
+    out: list[dict] = []
+    for topic, s in by_topic.items():
+        if s["attempts"] < min_attempts:
+            continue
+        if s["last_ts"] is None:
+            days_since = days
+        else:
+            raw = int((now - s["last_ts"]).total_seconds() // 86400)
+            days_since = min(days, max(0, raw))
+        out.append(
+            {
+                "topic": None if topic == "_overall" else topic,
+                "last_activity": (
+                    s["last_ts"].isoformat() if s["last_ts"] else None
+                ),
+                "days_since_last": days_since,
+                "total_attempts": s["attempts"],
+            }
+        )
+    out.sort(key=lambda x: (-x["days_since_last"], x["topic"] or ""))
+    return out

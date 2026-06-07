@@ -103,6 +103,8 @@ def test_days_since_handles_garbage():
 def test_pdf_dashboard_no_data_returns_empty_shape(configured, monkeypatch):
     monkeypatch.setattr(learning_loop, "get_overall_weakness", lambda *a, **kw: None)
     monkeypatch.setattr(learning_loop, "compute_weak_topics", lambda *a, **kw: [])
+    monkeypatch.setattr(learning_loop, "compute_topic_improvement", lambda *a, **kw: [])
+    monkeypatch.setattr(learning_loop, "compute_most_neglected_topics", lambda *a, **kw: [])
     monkeypatch.setattr(
         learning_loop,
         "get_activity_counts",
@@ -120,6 +122,8 @@ def test_pdf_dashboard_no_data_returns_empty_shape(configured, monkeypatch):
     assert d["readiness"] is None
     assert d["trend"] == "new"
     assert d["topics"] == []
+    assert d["most_improved"] is None
+    assert d["most_neglected"] is None
 
 
 def test_pdf_dashboard_computes_mastery_readiness_trend(configured, monkeypatch):
@@ -144,6 +148,8 @@ def test_pdf_dashboard_computes_mastery_readiness_trend(configured, monkeypatch)
              "quiz_count": 3, "flashcard_count": 2},
         ],
     )
+    monkeypatch.setattr(learning_loop, "compute_topic_improvement", lambda *a, **kw: [])
+    monkeypatch.setattr(learning_loop, "compute_most_neglected_topics", lambda *a, **kw: [])
     monkeypatch.setattr(
         learning_loop,
         "get_activity_counts",
@@ -189,6 +195,8 @@ def test_pdf_dashboard_trend_improving(configured, monkeypatch):
         },
     )
     monkeypatch.setattr(learning_loop, "compute_weak_topics", lambda *a, **kw: [])
+    monkeypatch.setattr(learning_loop, "compute_topic_improvement", lambda *a, **kw: [])
+    monkeypatch.setattr(learning_loop, "compute_most_neglected_topics", lambda *a, **kw: [])
     monkeypatch.setattr(
         learning_loop,
         "get_activity_counts",

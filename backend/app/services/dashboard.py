@@ -42,12 +42,15 @@ def _classify_trend(recent: float | None, prior: float | None) -> str:
 
 def get_pdf_dashboard(pdf_id: str, days: int = 30) -> dict:
     """Per-PDF dashboard: mastery, readiness, trend, topic breakdown,
-    activity counts, last activity. Always returns a dict (with None
-    fields) so the UI can render a card even when there's no data."""
+    activity counts, last activity, most improved, most neglected.
+    Always returns a dict (with None fields) so the UI can render a
+    card even when there's no data."""
     overall = learning_loop.get_overall_weakness(pdf_id, days=days)
     topics = learning_loop.compute_weak_topics(pdf_id, days=days)
     counts = learning_loop.get_activity_counts(pdf_id, days=days)
     last = learning_loop.get_last_activity(pdf_id)
+    improved = learning_loop.compute_topic_improvement(pdf_id)
+    neglected = learning_loop.compute_most_neglected_topics(pdf_id)
 
     if overall is None:
         return {
@@ -60,6 +63,8 @@ def get_pdf_dashboard(pdf_id: str, days: int = 30) -> dict:
             "days_since_last": _days_since(last),
             "trend": "new",
             "topics": [],
+            "most_improved": improved[0] if improved else None,
+            "most_neglected": neglected[0] if neglected else None,
             "quiz_attempts": counts["quiz_attempts"],
             "flashcard_reviews": counts["flashcard_reviews"],
             "tutor_sessions": counts["tutor_sessions"],
@@ -102,6 +107,8 @@ def get_pdf_dashboard(pdf_id: str, days: int = 30) -> dict:
         "days_since_last": days_since,
         "trend": trend,
         "topics": topic_breakdown,
+        "most_improved": improved[0] if improved else None,
+        "most_neglected": neglected[0] if neglected else None,
         "quiz_attempts": counts["quiz_attempts"],
         "flashcard_reviews": counts["flashcard_reviews"],
         "tutor_sessions": counts["tutor_sessions"],
@@ -146,6 +153,27 @@ def get_overall_dashboard(days: int = 30) -> dict:
     )
 
     streak = learning_loop.get_streak(pdf_id=None)
+
+    all_improved: list[dict] = []
+    for d in pdf_dashboards:
+        if d.get("most_improved"):
+            entry = dict(d["most_improved"])
+            entry["pdf_id"] = d["pdf_id"]
+            entry["filename"] = d.get("filename", d["pdf_id"])
+            all_improved.append(entry)
+    all_improved.sort(key=lambda x: -x["improvement"])
+    overall_most_improved = all_improved[0] if all_improved else None
+
+    all_neglected: list[dict] = []
+    for d in pdf_dashboards:
+        if d.get("most_neglected"):
+            entry = dict(d["most_neglected"])
+            entry["pdf_id"] = d["pdf_id"]
+            entry["filename"] = d.get("filename", d["pdf_id"])
+            all_neglected.append(entry)
+    all_neglected.sort(key=lambda x: -x["days_since_last"])
+    overall_most_neglected = all_neglected[0] if all_neglected else None
+
     return {
         "mastery": (
             round(weighted_mastery, 4) if weighted_mastery is not None else None
@@ -158,5 +186,7 @@ def get_overall_dashboard(days: int = 30) -> dict:
         "active_pdfs": active,
         "total_attempts": total_attempts,
         "streak": streak,
+        "most_improved": overall_most_improved,
+        "most_neglected": overall_most_neglected,
         "pdfs": pdf_dashboards,
     }
