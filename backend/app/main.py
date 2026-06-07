@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     flashcards,
     health,
+    loop,
     papers,
     pdfs,
     qa,
@@ -15,12 +16,13 @@ from app.api.routes import (
     tutor,
 )
 from app.config import settings
-from app.db import database
+from app.db import database, supabase
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     database.init_db()
+    supabase.init_supabase()
     yield
 
 
@@ -48,6 +50,7 @@ app.include_router(flashcards.router, prefix="/api/flashcards", tags=["flashcard
 app.include_router(quiz.router, prefix="/api/quiz", tags=["quiz"])
 app.include_router(tutor.router, prefix="/api/tutor", tags=["tutor"])
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
+app.include_router(loop.router, prefix="/api/loop", tags=["loop"])
 
 
 @app.get("/")

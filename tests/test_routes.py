@@ -2,7 +2,6 @@ import socket
 from contextlib import closing
 
 import pytest
-from fastapi.testclient import TestClient
 
 
 def _port_free(host: str, port: int) -> bool:
@@ -12,14 +11,6 @@ def _port_free(host: str, port: int) -> bool:
             return True
         except OSError:
             return False
-
-
-@pytest.fixture(scope="module")
-def client():
-    from app.main import app
-
-    with TestClient(app) as c:
-        yield c
 
 
 def test_root_endpoint(client):

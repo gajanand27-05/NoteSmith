@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
 
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+    supabase_service_role_key: str = ""
+    supabase_db_url: str = ""
+
     cors_origins: list[str] = [
         "http://localhost:8501",
         "http://localhost:3000",

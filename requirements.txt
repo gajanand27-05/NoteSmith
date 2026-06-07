@@ -11,6 +11,8 @@ streamlit>=1.32
 requests>=2.31
 chromadb>=0.4
 aiofiles>=23.2
+supabase>=2.0
+psycopg2-binary>=2.9
 
 pytest>=8.0
 pytest-asyncio>=0.23

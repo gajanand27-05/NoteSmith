@@ -254,6 +254,100 @@ def analyze_papers(
         return None
 
 
+def record_quiz_result(
+    pdf_id: str, score: int, total: int, topic: str | None = None
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/loop/quiz-result",
+            json={
+                "pdf_id": pdf_id,
+                "score": score,
+                "total": total,
+                "topic": topic,
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.warning(f"Could not record quiz result: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Could not record quiz result: {e}")
+        return None
+
+
+def record_flashcard_result(
+    pdf_id: str,
+    card_index: int,
+    correct: bool,
+    topic: str | None = None,
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/loop/flashcard-result",
+            json={
+                "pdf_id": pdf_id,
+                "card_index": card_index,
+                "correct": correct,
+                "topic": topic,
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        st.warning(f"Could not record flashcard review: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Could not record flashcard review: {e}")
+        return None
+
+
+def record_tutor_log(
+    concept: str, level: str, pdf_id: str | None = None
+) -> dict | None:
+    try:
+        r = requests.post(
+            f"{API_URL}/api/loop/tutor-log",
+            json={
+                "concept": concept,
+                "level": level,
+                "pdf_id": pdf_id,
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError:
+        return None
+    except Exception:
+        return None
+
+
+def get_weak_topics(pdf_id: str, days: int = 30) -> dict | None:
+    try:
+        r = requests.get(
+            f"{API_URL}/api/loop/weak-topics/{pdf_id}",
+            params={"days": days},
+            timeout=15,
+        )
+        r.raise_for_status()
+        return r.json()
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 503:
+            st.warning(
+                "Study Loop history is disabled: Supabase is not configured."
+            )
+        else:
+            st.warning(f"Could not load weakness data: {_request_error(e)}")
+        return None
+    except Exception as e:
+        st.warning(f"Could not load weakness data: {e}")
+        return None
+
+
 def clear_caches() -> None:
     health.clear()
     ollama_status.clear()

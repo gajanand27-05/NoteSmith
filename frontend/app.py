@@ -80,11 +80,15 @@ with col6:
     st.write("MCQ self-test with score and review.")
     st.page_link("pages/6_Quiz.py", label="Go to Quiz")
 with col7:
-    st.markdown("**7. Tutor**")
+    st.markdown("**7. Study Loop**")
+    st.write("Drill weak topics, track progress, close the loop.")
+    st.page_link("pages/0_Study_Loop.py", label="Go to Study Loop")
+with col8:
+    st.markdown("**8. Tutor**")
     st.write("Explain concepts at 6 depth levels.")
     st.page_link("pages/10_Tutor.py", label="Go to Tutor")
-with col8:
-    st.markdown("**8. Paper Analyzer**")
+with col9:
+    st.markdown("**9. Paper Analyzer**")
     st.write("Topic frequency + predicted questions from past papers.")
     st.page_link("pages/7_Paper_Analyzer.py", label="Go to Paper Analyzer")
 
