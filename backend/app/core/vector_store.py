@@ -34,7 +34,7 @@ class VectorStore:
             ids=ids,
             documents=chunks,
             embeddings=embeddings,
-            metadatas=metadatas or [{} for _ in chunks],
+            metadatas=metadatas or [{"source": pdf_id} for _ in chunks],
         )
         return len(chunks)
 
