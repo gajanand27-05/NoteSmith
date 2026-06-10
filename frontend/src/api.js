@@ -27,16 +27,16 @@ export const askQuestion = (pdfId, question) =>
   api.post('/qa', { pdf_id: pdfId, question });
 
 export const generateQuestions = (pdfId, marks, count = 5) => 
-  api.post('/questions', { pdf_id: pdfId, marks, count });
+  api.post('/questions/generate', { pdf_id: pdfId, marks, count });
 
 export const generateFlashcards = (pdfId, count = 20) => 
-  api.post('/flashcards', { pdf_id: pdfId, count });
+  api.post('/flashcards/generate', { pdf_id: pdfId, count });
 
 export const generateQuiz = (pdfId, count = 10, difficulty = 'medium') => 
-  api.post('/quiz', { pdf_id: pdfId, count, difficulty });
+  api.post('/quiz/generate', { pdf_id: pdfId, count, difficulty });
 
 export const tutorExplain = (concept, level, pdfId = null) => 
-  api.post('/tutor', { concept, level, pdf_id: pdfId });
+  api.post('/tutor/explain', { concept, level, pdf_id: pdfId });
 
 export const analyzePapers = (pdfIds, targetYear = 2024) => 
   api.post('/papers/analyze', { pdf_ids: pdfIds, target_year: targetYear });
