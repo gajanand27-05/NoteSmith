@@ -31,6 +31,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Installing frontend dependencies...
+cd frontend
+call npm install
+cd ..
+
 if not exist .env (
     echo Creating .env from .env.example...
     copy .env.example .env >nul

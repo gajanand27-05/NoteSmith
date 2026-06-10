@@ -576,6 +576,115 @@ def compute_topic_improvement(
     return out
 
 
+def get_activity_log(
+    pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS, limit: int = 100
+) -> list[dict]:
+    """Fetch detailed activity log across quiz, flashcard, and tutor tables.
+    Returns unified list sorted by timestamp desc, limited to `limit` rows."""
+    if not _is_configured():
+        return []
+    client = supabase.get_client()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    quiz = (
+        client.table("quiz_attempts")
+        .select("id,topic,score,total,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .order("ts", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    fc = (
+        client.table("flashcard_reviews")
+        .select("id,topic,card_index,correct,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .order("ts", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    tutor = (
+        client.table("tutor_sessions")
+        .select("id,concept,level,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .order("ts", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    activity: list[dict] = []
+    for r in quiz.data or []:
+        activity.append(
+            {
+                "type": "quiz",
+                "id": r["id"],
+                "topic": r.get("topic"),
+                "score": r["score"],
+                "total": r["total"],
+                "accuracy": r["score"] / r["total"] if r["total"] else 0,
+                "ts": r["ts"],
+            }
+        )
+    for r in fc.data or []:
+        activity.append(
+            {
+                "type": "flashcard",
+                "id": r["id"],
+                "topic": r.get("topic"),
+                "card_index": r["card_index"],
+                "correct": r["correct"],
+                "ts": r["ts"],
+            }
+        )
+    for r in tutor.data or []:
+        activity.append(
+            {
+                "type": "tutor",
+                "id": r["id"],
+                "concept": r["concept"],
+                "level": r["level"],
+                "ts": r["ts"],
+            }
+        )
+
+    activity.sort(key=lambda x: x["ts"], reverse=True)
+    return activity[:limit]
+
+
+def get_tutor_sessions(
+    pdf_id: str, days: int = DEFAULT_LOOKBACK_DAYS, limit: int = 100
+) -> list[dict]:
+    """Fetch tutor sessions with concept, level, and timestamp."""
+    if not _is_configured():
+        return []
+    client = supabase.get_client()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    res = (
+        client.table("tutor_sessions")
+        .select("id,concept,level,ts")
+        .eq("pdf_id", pdf_id)
+        .gte("ts", cutoff)
+        .order("ts", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    sessions: list[dict] = []
+    for r in res.data or []:
+        sessions.append(
+            {
+                "id": r["id"],
+                "concept": r["concept"],
+                "level": r["level"],
+                "ts": r["ts"],
+            }
+        )
+    return sessions
+
+
 def compute_most_neglected_topics(
     pdf_id: str,
     days: int = 60,

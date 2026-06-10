@@ -2,19 +2,28 @@
 setlocal
 cd /d %~dp0
 
-echo === Starting NoteSmith (2 terminals) ===
+echo === Starting NoteSmith Backend + Frontend ===
 echo.
 
-echo [1/3] Starting Ollama in background...
-start /B ollama serve
-timeout /t 3 >nul
+if not exist venv (
+    echo Virtual environment not found. Run setup.bat first.
+    exit /b 1
+)
 
-echo [2/3] Starting Backend on http://localhost:8000...
 call venv\Scripts\activate
-start /B uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
-timeout /t 3 >nul
 
-echo [3/3] Starting Frontend on http://localhost:8501...
-streamlit run frontend/app.py
+echo Starting Backend on http://localhost:8000...
+start "NoteSmith Backend" cmd /k "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend"
+
+timeout /t 5 >nul
+
+echo Starting Frontend on http://localhost:8501...
+start "NoteSmith Frontend" cmd /k "streamlit run frontend/app.py --server.port 8501"
+
+echo.
+echo Both services starting in separate windows.
+echo Backend:  http://localhost:8000
+echo Frontend: http://localhost:8501
+echo Ollama:   Must run separately: ollama serve
 
 endlocal

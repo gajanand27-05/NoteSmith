@@ -89,3 +89,35 @@ def get_weak_topics(
         "overall": overall,
         "topics": topics,
     }
+
+
+@router.get("/activity/{pdf_id}")
+def get_activity_log(
+    pdf_id: str,
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> dict:
+    """Fetch detailed activity log: quiz attempts, flashcard reviews, tutor sessions."""
+    try:
+        activity = learning_loop.get_activity_log(pdf_id, days=days, limit=limit)
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Failed to fetch activity log: {e}")
+    return {"pdf_id": pdf_id, "days": days, "activity": activity}
+
+
+@router.get("/tutor-sessions/{pdf_id}")
+def get_tutor_sessions(
+    pdf_id: str,
+    days: int = Query(default=30, ge=1, le=365),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> dict:
+    """Fetch tutor sessions with concepts and levels."""
+    try:
+        sessions = learning_loop.get_tutor_sessions(pdf_id, days=days, limit=limit)
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Failed to fetch tutor sessions: {e}")
+    return {"pdf_id": pdf_id, "days": days, "sessions": sessions}

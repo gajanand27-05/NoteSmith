@@ -7,7 +7,7 @@ if not exist venv (
     exit /b 1
 )
 
-call venv\Scripts\activate
-echo Starting NoteSmith frontend on http://localhost:8501
-streamlit run frontend/app.py
+echo Starting NoteSmith frontend on http://localhost:3000
+cd frontend
+npm run dev
 endlocal

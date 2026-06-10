@@ -28,12 +28,12 @@
 ## Tech stack
 - Backend: FastAPI, Pydantic, SQLite, ChromaDB, pypdf
 - AI: Ollama (gemma4:12b chat, nomic-embed-text embeddings)
-- Frontend: Streamlit multi-page
+- Frontend: React.js (Vite, JavaScript, Material UI)
 - Tests: pytest
 
 ## Project layout
 - backend/app/ - FastAPI app
-- frontend/ - Streamlit app (multi-page under pages/)
+- frontend/ - React.js app (Vite)
 - data/ - uploads and ChromaDB persistence
 - tests/ - pytest tests
 - setup.bat, run_backend.bat, run_frontend.bat - Windows scripts
