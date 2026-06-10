@@ -16,7 +16,7 @@ import {
   Chip,
   Stack
 } from '@mui/material';
-import { HelpOutline as QuestionsIcon } from '@mui/icons-material';
+import { Help as QuestionsIcon } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import PdfSelector from '../components/shared/PdfSelector';
 import { generateQuestions } from '../api';

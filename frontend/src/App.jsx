@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
-import theme from './theme';
+import { ColorModeProvider } from './ColorModeContext';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
@@ -24,7 +23,7 @@ const Placeholder = ({ name }) => (
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ColorModeProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -41,7 +40,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
-    </ThemeProvider>
+    </ColorModeProvider>
   );
 }
 

@@ -21,16 +21,21 @@ import {
   Summarize as SummarizeIcon,
   QuestionAnswer as QAIcon,
   Quiz as QuizIcon,
-  HelpOutline as QuestionsIcon,
+  Help as QuestionsIcon,
   Style as FlashcardsIcon,
   School as TutorIcon,
   Analytics as PaperIcon,
   Loop as LoopIcon,
   Menu as MenuIcon,
-  Circle as CircleIcon
+  Circle as CircleIcon,
+  Brightness4 as DarkIcon,
+  Brightness7 as LightIcon,
+  SettingsBrightness as SystemIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Menu, MenuItem } from '@mui/material';
 import { healthCheck } from '../api';
+import { ColorModeContext } from '../ColorModeContext';
 
 const drawerWidth = 240;
 
@@ -50,8 +55,23 @@ const menuItems = [
 const Layout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { mode, setMode } = React.useContext(ColorModeContext);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
+  const [themeAnchorEl, setThemeAnchorEl] = useState(null);
+
+  const handleThemeMenuOpen = (event) => {
+    setThemeAnchorEl(event.currentTarget);
+  };
+
+  const handleThemeMenuClose = () => {
+    setThemeAnchorEl(null);
+  };
+
+  const handleThemeChange = (newMode) => {
+    setMode(newMode);
+    handleThemeMenuClose();
+  };
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -135,6 +155,27 @@ const Layout = () => {
               color={backendStatus === 'online' ? 'success' : 'error'}
               variant="outlined"
             />
+            <IconButton onClick={handleThemeMenuOpen} color="inherit" sx={{ ml: 1 }}>
+              {mode === 'dark' ? <DarkIcon /> : mode === 'light' ? <LightIcon /> : <SystemIcon />}
+            </IconButton>
+            <Menu
+              anchorEl={themeAnchorEl}
+              open={Boolean(themeAnchorEl)}
+              onClose={handleThemeMenuClose}
+            >
+              <MenuItem onClick={() => handleThemeChange('system')} selected={mode === 'system'}>
+                <ListItemIcon><SystemIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>System</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => handleThemeChange('light')} selected={mode === 'light'}>
+                <ListItemIcon><LightIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Light</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => handleThemeChange('dark')} selected={mode === 'dark'}>
+                <ListItemIcon><DarkIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Dark</ListItemText>
+              </MenuItem>
+            </Menu>
           </Box>
         </Toolbar>
       </AppBar>
