@@ -79,7 +79,7 @@ async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
         vector_store.delete_pdf(pdf_id)
         raise HTTPException(500, f"Failed to index PDF: {e}")
 
-    database.create_pdf(file.filename, str(stored_path), pages)
+    database.create_pdf(pdf_id, file.filename, str(stored_path), pages)
     database.update_pdf_stats(pdf_id, len(chunks), len(text))
     record = database.get_pdf(pdf_id)
     assert record is not None

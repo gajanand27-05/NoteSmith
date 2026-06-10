@@ -57,7 +57,9 @@ const Upload = () => {
       setFile(null);
       fetchPdfs();
     } catch (error) {
-      setMessage({ type: 'error', text: 'Upload failed. Make sure the backend is running and Ollama is online.' });
+      console.error("Upload failed details:", error);
+      const errorMsg = error.response?.data?.detail || error.message || 'Upload failed';
+      setMessage({ type: 'error', text: `Upload failed: ${errorMsg}. Make sure the backend is running and Ollama is online.` });
     } finally {
       setUploading(false);
     }

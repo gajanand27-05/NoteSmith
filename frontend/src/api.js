@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
 export const healthCheck = () => api.get('/health');
-export const getOllamaStatus = () => api.get('/health/ollama');
+export const getOllamaStatus = () => api.get('/ollama/status');
 
 export const listPdfs = () => api.get('/pdfs');
 export const uploadPdf = (file) => {

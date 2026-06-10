@@ -30,10 +30,13 @@ import {
   Circle as CircleIcon,
   Brightness4 as DarkIcon,
   Brightness7 as LightIcon,
-  SettingsBrightness as SystemIcon
+  SettingsBrightness as SystemIcon,
+  Refresh as RefreshIcon,
+  Print as PrintIcon,
+  DeleteSweep as ClearIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { Menu, MenuItem } from '@mui/material';
+import { Menu, MenuItem, Tooltip } from '@mui/material';
 import { healthCheck } from '../api';
 import { ColorModeContext } from '../ColorModeContext';
 
@@ -162,19 +165,44 @@ const Layout = () => {
               anchorEl={themeAnchorEl}
               open={Boolean(themeAnchorEl)}
               onClose={handleThemeMenuClose}
+              PaperProps={{ sx: { width: 200 } }}
             >
-              <MenuItem onClick={() => handleThemeChange('system')} selected={mode === 'system'}>
-                <ListItemIcon><SystemIcon fontSize="small" /></ListItemIcon>
-                <ListItemText>System</ListItemText>
+              <Box sx={{ display: 'flex', justifyContent: 'space-around', p: 1 }}>
+                <Tooltip title="System">
+                  <IconButton onClick={() => handleThemeChange('system')} color={mode === 'system' ? 'primary' : 'default'}>
+                    <SystemIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Light">
+                  <IconButton onClick={() => handleThemeChange('light')} color={mode === 'light' ? 'primary' : 'default'}>
+                    <LightIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Dark">
+                  <IconButton onClick={() => handleThemeChange('dark')} color={mode === 'dark' ? 'primary' : 'default'}>
+                    <DarkIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Divider />
+              <MenuItem onClick={() => window.location.reload()}>
+                <ListItemIcon><RefreshIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Rerun</ListItemText>
+                <Typography variant="body2" color="text.secondary">R</Typography>
               </MenuItem>
-              <MenuItem onClick={() => handleThemeChange('light')} selected={mode === 'light'}>
-                <ListItemIcon><LightIcon fontSize="small" /></ListItemIcon>
-                <ListItemText>Light</ListItemText>
+              <MenuItem onClick={() => window.print()}>
+                <ListItemIcon><PrintIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Print</ListItemText>
               </MenuItem>
-              <MenuItem onClick={() => handleThemeChange('dark')} selected={mode === 'dark'}>
-                <ListItemIcon><DarkIcon fontSize="small" /></ListItemIcon>
-                <ListItemText>Dark</ListItemText>
+              <MenuItem onClick={() => { localStorage.clear(); window.location.reload(); }}>
+                <ListItemIcon><ClearIcon fontSize="small" /></ListItemIcon>
+                <ListItemText>Clear cache</ListItemText>
+                <Typography variant="body2" color="text.secondary">C</Typography>
               </MenuItem>
+              <Divider />
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="caption" color="text.secondary">Made with React + MUI</Typography>
+              </Box>
             </Menu>
           </Box>
         </Toolbar>
