@@ -40,7 +40,7 @@ echo === Setup complete ===
 echo Next steps:
 echo   1. Make sure Ollama is running: ollama serve
 echo   2. Pull models:
-echo        ollama pull llama3.1:8b
+echo        ollama pull gemma4:12b
 echo        ollama pull nomic-embed-text
 echo   3. Start backend:  run_backend.bat
 echo   4. Start frontend: run_frontend.bat

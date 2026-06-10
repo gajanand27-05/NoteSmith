@@ -99,8 +99,8 @@ if not pdfs:
         """
 1. Make sure Ollama is running: `ollama serve`
 2. Pull the models:
-   - `ollama pull llama3.1:8b`
-   - `ollama pull nomic-embed-text`
+    - `ollama pull gemma4:12b`
+    - `ollama pull nomic-embed-text`
 3. Run `setup.bat` once to create the environment.
 4. Start the backend: `run_backend.bat`
 5. Start the frontend: `run_frontend.bat`
