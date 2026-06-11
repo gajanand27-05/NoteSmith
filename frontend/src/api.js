@@ -43,7 +43,7 @@ export const tutorExplain = (concept, level, pdfId = null) =>
 export const analyzePapers = (pdfIds, targetYear = 2024) => 
   api.post('/papers/analyze', { pdf_ids: pdfIds, target_year: targetYear });
 
-export const getDashboardStats = () => api.get('/dashboard/stats');
+export const getDashboardStats = () => api.get('/dashboard/overall');
 export const getStudyLoopStatus = () => api.get('/loop/status');
 
 export default api;
