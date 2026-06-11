@@ -18,12 +18,27 @@ class LLMClient:
         self.embed_model = embed_model or settings.ollama_embed_model
         self._client = ollama.Client(host=self.base_url)
         
+        self.gemini_key = settings.gemini_api_key
+        self.gemini_chat_model = settings.gemini_chat_model
+        
         self.openai_key = settings.openai_api_key
         self.openai_chat_model = settings.openai_chat_model
-        self._openai_client = OpenAI(api_key=self.openai_key) if self.openai_key else None
+        
+        self._cloud_client = None
+        self._cloud_model = None
+        
+        if self.gemini_key:
+            self._cloud_client = OpenAI(
+                api_key=self.gemini_key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            )
+            self._cloud_model = self.gemini_chat_model
+        elif self.openai_key:
+            self._cloud_client = OpenAI(api_key=self.openai_key)
+            self._cloud_model = self.openai_chat_model
 
     def is_available(self) -> bool:
-        if self._openai_client:
+        if self._cloud_client:
             return True
         try:
             self._client.list()
@@ -32,30 +47,29 @@ class LLMClient:
             return False
 
     def list_models(self) -> list[str]:
-        if self._openai_client:
-            return [self.openai_chat_model]
+        models = []
+        if self._cloud_client:
+            models.append(self._cloud_model)
         try:
             response = self._client.list()
-            names: list[str] = []
             for m in getattr(response, "models", []) or []:
                 name = getattr(m, "model", None) or getattr(m, "name", None)
                 if name is None and isinstance(m, dict):
                     name = m.get("model") or m.get("name")
                 if name:
-                    names.append(name)
-            return names
+                    models.append(name)
         except Exception:
-            return []
+            pass
+        return models
 
     def has_model(self, model: str) -> bool:
-        if self._openai_client:
+        if self._cloud_client:
             return True
         return any(model in name for name in self.list_models())
 
     def chat(self, messages: list[dict[str, str]], stream: bool = False) -> Any:
-        if self._openai_client:
-            # We don't implement full stream passthrough for OpenAI in this wrapper yet
-            raise NotImplementedError("Raw chat not supported with OpenAI in this wrapper")
+        if self._cloud_client:
+            raise NotImplementedError("Raw chat not supported with cloud models in this wrapper")
         return self._client.chat(
             model=self.chat_model,
             messages=messages,
@@ -63,8 +77,8 @@ class LLMClient:
         )
 
     def generate(self, prompt: str, stream: bool = False) -> Any:
-        if self._openai_client:
-            raise NotImplementedError("Raw generate not supported with OpenAI in this wrapper")
+        if self._cloud_client:
+            raise NotImplementedError("Raw generate not supported with cloud models in this wrapper")
         return self._client.generate(
             model=self.chat_model,
             prompt=prompt,
@@ -72,9 +86,9 @@ class LLMClient:
         )
 
     def generate_text(self, prompt: str) -> str:
-        if self._openai_client:
-            response = self._openai_client.chat.completions.create(
-                model=self.openai_chat_model,
+        if self._cloud_client:
+            response = self._cloud_client.chat.completions.create(
+                model=self._cloud_model,
                 messages=[{"role": "user", "content": prompt}]
             )
             return (response.choices[0].message.content or "").strip()
@@ -86,9 +100,9 @@ class LLMClient:
         return (text or "").strip()
 
     def chat_text(self, messages: list[dict[str, str]]) -> str:
-        if self._openai_client:
-            response = self._openai_client.chat.completions.create(
-                model=self.openai_chat_model,
+        if self._cloud_client:
+            response = self._cloud_client.chat.completions.create(
+                model=self._cloud_model,
                 messages=messages
             )
             return (response.choices[0].message.content or "").strip()
@@ -103,7 +117,6 @@ class LLMClient:
         return (content or "").strip()
 
     def embed(self, text: str | list[str]) -> list[list[float]]:
-        # Keep using local Ollama for embeddings
         inputs = [text] if isinstance(text, str) else text
         response = self._client.embed(model=self.embed_model, input=inputs)
         embeddings = getattr(response, "embeddings", None) or []

@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     
     openai_api_key: str = ""
     openai_chat_model: str = "gpt-4o-mini"
+    
+    gemini_api_key: str = ""
+    gemini_chat_model: str = "gemini-1.5-flash"
 
     chroma_persist_dir: str = "./data/chroma"
     upload_dir: str = "./data/uploads"
