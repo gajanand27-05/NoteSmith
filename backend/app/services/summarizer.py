@@ -57,6 +57,12 @@ def summarize_pdf(pdf_id: str, length: str) -> str:
     if not chunks:
         return "Could not chunk the document."
 
+    print(f"Summarizing PDF {pdf_id} in {len(chunks)} chunks using {llm.chat_model}...")
     per_chunk = max(target // max(len(chunks), 1) + 50, 100)
-    partials = [_summarize_chunk(c, per_chunk) for c in chunks]
+    partials = []
+    for i, c in enumerate(chunks, 1):
+        print(f"  -> Processing chunk {i}/{len(chunks)}...")
+        partials.append(_summarize_chunk(c, per_chunk))
+        
+    print(f"Combining {len(chunks)} partial summaries into final result...")
     return _combine_summaries(partials, target)
