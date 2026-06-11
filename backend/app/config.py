@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_chat_model: str = "gemma4:12b"
     ollama_embed_model: str = "nomic-embed-text"
+    
+    openai_api_key: str = ""
+    openai_chat_model: str = "gpt-4o-mini"
 
     chroma_persist_dir: str = "./data/chroma"
     upload_dir: str = "./data/uploads"
