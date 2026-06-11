@@ -20,6 +20,8 @@ export const uploadPdf = (file) => {
   });
 };
 
+export const deletePdf = (pdfId) => api.delete(`/pdfs/${pdfId}`);
+
 export const getSummary = (pdfId, length = 'medium') => 
   api.post('/summarize', { pdf_id: pdfId, length });
 

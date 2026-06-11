@@ -10,15 +10,17 @@ import {
   ListItemIcon, 
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  IconButton
 } from '@mui/material';
 import { 
   CloudUpload as UploadIcon, 
   PictureAsPdf as PdfIcon,
   CheckCircle as SuccessIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
-import { listPdfs, uploadPdf } from '../api';
+import { listPdfs, uploadPdf, deletePdf } from '../api';
 
 const Upload = () => {
   const [file, setFile] = useState(null);
@@ -62,6 +64,18 @@ const Upload = () => {
       setMessage({ type: 'error', text: `Upload failed: ${errorMsg}. Make sure the backend is running and Ollama is online.` });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDelete = async (pdfId) => {
+    try {
+      await deletePdf(pdfId);
+      setMessage({ type: 'success', text: 'PDF deleted successfully' });
+      fetchPdfs();
+    } catch (error) {
+      console.error("Delete failed details:", error);
+      const errorMsg = error.response?.data?.detail || error.message || 'Delete failed';
+      setMessage({ type: 'error', text: `Delete failed: ${errorMsg}` });
     }
   };
 
@@ -132,7 +146,13 @@ const Upload = () => {
             ) : (
               pdfs.map((pdf, index) => (
                 <React.Fragment key={pdf.id}>
-                  <ListItem>
+                  <ListItem
+                    secondaryAction={
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(pdf.id)} color="error">
+                        <DeleteIcon />
+                      </IconButton>
+                    }
+                  >
                     <ListItemIcon>
                       <PdfIcon color="primary" />
                     </ListItemIcon>
@@ -140,7 +160,6 @@ const Upload = () => {
                       primary={pdf.original_name} 
                       secondary={`${pdf.page_count} pages • ${pdf.chunk_count} chunks • Uploaded on ${new Date(pdf.created_at).toLocaleDateString()}`} 
                     />
-                    <SuccessIcon color="success" />
                   </ListItem>
                   {index < pdfs.length - 1 && <Divider component="li" />}
                 </React.Fragment>
