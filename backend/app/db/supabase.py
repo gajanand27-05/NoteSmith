@@ -52,15 +52,18 @@ SCHEMA_STATEMENTS: list[str] = [
 ]
 
 
+_is_reachable = False
+
 def is_configured() -> bool:
     return bool(settings.supabase_url and settings.supabase_service_role_key)
 
+def is_ready() -> bool:
+    return is_configured() and _is_reachable
 
 def get_client() -> Client | None:
     if not is_configured():
         return None
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
-
 
 def init_schema() -> bool:
     """Create tables/indexes if missing. Uses the direct Postgres URL
@@ -92,9 +95,9 @@ def init_schema() -> bool:
         logger.error("Failed to ensure Supabase schema: %s", e)
         return False
 
-
 def init_supabase() -> dict[str, Any]:
     """Called on FastAPI startup. Returns a status dict for logging."""
+    global _is_reachable
     status: dict[str, Any] = {
         "configured": is_configured(),
         "schema_ready": False,
@@ -110,8 +113,10 @@ def init_supabase() -> dict[str, Any]:
         client = get_client()
         client.table("quiz_attempts").select("id").limit(1).execute()
         status["reachable"] = True
+        _is_reachable = True
     except Exception as e:
         status["reachable"] = False
+        _is_reachable = False
         status["error"] = str(e)
         logger.error("Supabase client cannot reach tables: %s", e)
     return status

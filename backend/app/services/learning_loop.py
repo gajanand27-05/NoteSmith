@@ -18,7 +18,7 @@ def _parse_ts(ts: str) -> datetime:
 
 
 def _is_configured() -> bool:
-    return supabase.is_configured()
+    return getattr(supabase, "is_ready", supabase.is_configured)()
 
 
 def _recent_multiplier(ts: datetime) -> int:

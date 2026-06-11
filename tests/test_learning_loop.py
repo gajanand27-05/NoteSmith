@@ -68,6 +68,7 @@ def _make_client(**tables: _FakeTable) -> _FakeClient:
 @pytest.fixture
 def configured(monkeypatch):
     monkeypatch.setattr(learning_loop.supabase, "is_configured", lambda: True)
+    monkeypatch.setattr(learning_loop.supabase, "is_ready", lambda: True)
 
 
 @pytest.fixture
