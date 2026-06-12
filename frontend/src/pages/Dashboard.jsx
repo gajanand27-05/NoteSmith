@@ -168,7 +168,7 @@ const Dashboard = () => {
                   <Button variant="contained" size="small" sx={{ mt: 2 }} onClick={() => navigate('/upload')}>Upload PDF</Button>
                 </Card>
               ) : (
-                <Grid container spacing={2}>
+                <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
                   {recentPdfs.map((pdf, i) => {
                     const progress = getProgress(pdf.id);
                     const colorThemes = [
@@ -179,7 +179,7 @@ const Dashboard = () => {
                     ];
                     const theme = colorThemes[i % colorThemes.length];
                     return (
-                      <Grid item xs={12} sm={6} md={6} xl={4} key={pdf.id}>
+                      <Box key={pdf.id} sx={{ minWidth: 240, flex: 1 }}>
                         <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)' }}>
                           <CardContent sx={{ flex: 1, p: 2, '&:last-child': { pb: 2 } }}>
                             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -235,18 +235,18 @@ const Dashboard = () => {
                             </Box>
                           </CardContent>
                         </Card>
-                      </Grid>
+                      </Box>
                     );
                   })}
-                </Grid>
+                </Stack>
               )}
             </Box>
 
             {/* Recommended Next Steps */}
             <Box>
               <Typography variant="h6" fontWeight="700" mb={2}>Recommended Next Steps</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={12} md={4}>
+              <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+                <Box sx={{ minWidth: 260, flex: 1 }}>
                   <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
@@ -261,8 +261,8 @@ const Dashboard = () => {
                       </Box>
                     </Box>
                   </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                </Box>
+                <Box sx={{ minWidth: 260, flex: 1 }}>
                   <Card sx={{ bgcolor: '#111827', border: '1px solid rgba(59,130,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" color="#60A5FA" mb={0.5}>Practice Quiz</Typography>
@@ -277,8 +277,8 @@ const Dashboard = () => {
                       </Box>
                     </Box>
                   </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                </Box>
+                <Box sx={{ minWidth: 260, flex: 1 }}>
                   <Card sx={{ bgcolor: '#064E3B', border: '1px solid rgba(16,185,129,0.2)', height: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" color="#34D399" mb={0.5}>AI Tutor</Typography>
@@ -291,8 +291,8 @@ const Dashboard = () => {
                        <BrainIcon sx={{ fontSize: 100, color: '#34D399', opacity: 0.3 }} />
                     </Box>
                   </Card>
-                </Grid>
-              </Grid>
+                </Box>
+              </Stack>
             </Box>
 
           </Stack>
@@ -312,7 +312,7 @@ const Dashboard = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
                     7 days in a row
                   </Typography>
-                  <Stack direction="row" gap={1.5} flexWrap="wrap">
+                  <Stack direction="row" gap={1.5} flexWrap="nowrap">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
                       <Stack key={i} direction="column" alignItems="center" gap={1}>
                         <Box sx={{ 
