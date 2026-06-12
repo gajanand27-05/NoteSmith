@@ -107,9 +107,14 @@ const Upload = () => {
         </label>
         
         {file && (
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            Selected: <strong>{file.name}</strong>
-          </Typography>
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Typography variant="body2">
+              Selected: <strong>{file.name}</strong>
+            </Typography>
+            <IconButton size="small" onClick={() => setFile(null)} color="error" title="Remove selection">
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
         )}
 
         <Box sx={{ mt: 2 }}>
