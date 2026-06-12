@@ -70,37 +70,6 @@ const Dashboard = () => {
             Let's make today a productive learning day.
           </Typography>
         </Box>
-
-        {/* Streak Card as Top Horizontal Banner */}
-        <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', backdropFilter: 'none', border: '1px solid rgba(245,158,11,0.2)', overflowX: 'auto' }}>
-          <CardContent sx={{ py: 1, px: 3, '&:last-child': { pb: 1 } }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="nowrap" gap={4} sx={{ minWidth: 'max-content' }}>
-              <Stack direction="row" alignItems="center" gap={1.5} flexWrap="nowrap">
-                <FireIcon sx={{ fontSize: 32, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
-                <Box>
-                  <Typography variant="subtitle2" fontWeight="700" whiteSpace="nowrap">You're on a streak!</Typography>
-                  <Typography variant="caption" color="text.secondary" whiteSpace="nowrap">7 days in a row</Typography>
-                </Box>
-              </Stack>
-              <Stack direction="row" gap={2} flexWrap="nowrap">
-                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-                  <Stack key={i} direction="column" alignItems="center" flexWrap="nowrap">
-                    <Box sx={{ 
-                      width: 24, height: 24, borderRadius: '50%', 
-                      bgcolor: i < 5 ? '#F59E0B' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
-                      color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5
-                    }}>
-                      {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{day}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
       </Box>
 
       <Grid container spacing={3}>
@@ -120,7 +89,7 @@ const Dashboard = () => {
                       <BrainIcon fontSize="small" /> OVERALL MASTERY
                     </Typography>
                     <Typography variant="h2" fontWeight="800" sx={{ mt: 1, mb: 0.5, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-                      82%
+                      {recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                       You're doing great! Keep it up.
@@ -128,7 +97,7 @@ const Dashboard = () => {
                     
                     <LinearProgress 
                       variant="determinate" 
-                      value={82} 
+                      value={recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)} 
                       sx={{ 
                         height: 6, 
                         borderRadius: 3, 
@@ -165,7 +134,7 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* Decorative glowing background element (simulating the 3D crystal) */}
+                  {/* Decorative glowing background element */}
                   <Box sx={{
                     position: 'absolute', right: '-5%', top: '50%', transform: 'translateY(-50%)',
                     width: '250px', height: '250px',
@@ -180,6 +149,37 @@ const Dashboard = () => {
                     }} />
                   </Box>
                 </Box>
+              </CardContent>
+            </Card>
+
+            {/* Streak Card - Moved below Overall Mastery */}
+            <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', backdropFilter: 'none', border: '1px solid rgba(245,158,11,0.2)', overflowX: 'auto' }}>
+              <CardContent sx={{ py: 1.5, px: 3, '&:last-child': { pb: 1.5 } }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="nowrap" gap={4} sx={{ minWidth: 'max-content' }}>
+                  <Stack direction="row" alignItems="center" gap={1.5} flexWrap="nowrap">
+                    <FireIcon sx={{ fontSize: 32, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="700" whiteSpace="nowrap">You're on a streak!</Typography>
+                      <Typography variant="caption" color="text.secondary" whiteSpace="nowrap">7 days in a row</Typography>
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" gap={2} flexWrap="nowrap">
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                      <Stack key={i} direction="column" alignItems="center" flexWrap="nowrap">
+                        <Box sx={{ 
+                          width: 24, height: 24, borderRadius: '50%', 
+                          bgcolor: i < 5 ? '#F59E0B' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
+                          color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5
+                        }}>
+                          {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{day}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Stack>
               </CardContent>
             </Card>
 
