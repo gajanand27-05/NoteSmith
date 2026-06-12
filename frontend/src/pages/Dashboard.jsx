@@ -74,7 +74,7 @@ const Dashboard = () => {
 
       <Grid container spacing={3}>
         {/* LEFT COLUMN - Main Content */}
-        <Grid item xs={12} lg={8}>
+        <Grid item xs={12} md={7} xl={8}>
           <Stack spacing={3}>
             
             {/* Hero Card: Overall Mastery */}
@@ -110,7 +110,7 @@ const Dashboard = () => {
                       }} 
                     />
 
-                    <Stack direction="row" gap={2} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1 }}>
+                    <Stack direction="row" gap={1.5} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1, flexWrap: 'wrap' }}>
                       {[
                         { val: stats.pdf_count, label: 'PDFs' },
                         { val: stats.chunk_count, label: 'Chunks' },
@@ -119,12 +119,12 @@ const Dashboard = () => {
                       ].map((stat, i) => (
                         <Box key={i} sx={{ 
                           border: '1px solid rgba(255,255,255,0.08)', 
-                          borderRadius: 2, py: 1.5, px: 2, flex: 1, minWidth: 80,
+                          borderRadius: 2, py: 1.5, px: 2, flex: 1, minWidth: 70,
                           bgcolor: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column',
                           alignItems: 'flex-start'
                         }}>
                           <Typography variant="h6" fontWeight="700" lineHeight={1}>{stat.val}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.5 }}>{stat.label}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.5, whiteSpace: 'nowrap' }}>{stat.label}</Typography>
                         </Box>
                       ))}
                     </Stack>
@@ -139,7 +139,7 @@ const Dashboard = () => {
                     position: 'absolute', right: '-5%', top: '50%', transform: 'translateY(-50%)',
                     width: '250px', height: '250px',
                     background: 'radial-gradient(circle, rgba(168,85,247,0.3) 0%, rgba(168,85,247,0) 70%)',
-                    zIndex: 0, pointerEvents: 'none', display: { xs: 'none', sm: 'block' }
+                    zIndex: 0, pointerEvents: 'none', display: { xs: 'none', md: 'block' }
                   }}>
                     <Box sx={{
                       position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
@@ -179,7 +179,7 @@ const Dashboard = () => {
                     ];
                     const theme = colorThemes[i % colorThemes.length];
                     return (
-                      <Grid item xs={12} sm={6} md={3} key={pdf.id}>
+                      <Grid item xs={12} sm={6} md={6} xl={4} key={pdf.id}>
                         <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)' }}>
                           <CardContent sx={{ flex: 1, p: 2, '&:last-child': { pb: 2 } }}>
                             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -246,7 +246,7 @@ const Dashboard = () => {
             <Box>
               <Typography variant="h6" fontWeight="700" mb={2}>Recommended Next Steps</Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} sm={12} md={4}>
                   <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
@@ -262,7 +262,7 @@ const Dashboard = () => {
                     </Box>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} sm={6} md={4}>
                   <Card sx={{ bgcolor: '#111827', border: '1px solid rgba(59,130,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" color="#60A5FA" mb={0.5}>Practice Quiz</Typography>
@@ -278,7 +278,7 @@ const Dashboard = () => {
                     </Box>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} sm={6} md={4}>
                   <Card sx={{ bgcolor: '#064E3B', border: '1px solid rgba(16,185,129,0.2)', height: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)' }}>
                     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
                       <Typography variant="subtitle2" fontWeight="700" color="#34D399" mb={0.5}>AI Tutor</Typography>
@@ -299,7 +299,7 @@ const Dashboard = () => {
         </Grid>
 
         {/* RIGHT COLUMN - Sidebar stats */}
-        <Grid item xs={12} lg={4}>
+        <Grid item xs={12} md={5} xl={4}>
           <Stack spacing={3}>
             
             {/* Streak Card */}
@@ -312,7 +312,7 @@ const Dashboard = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
                     7 days in a row
                   </Typography>
-                  <Stack direction="row" gap={2}>
+                  <Stack direction="row" gap={1.5} flexWrap="wrap">
                     {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
                       <Stack key={i} direction="column" alignItems="center" gap={1}>
                         <Box sx={{ 
@@ -340,7 +340,7 @@ const Dashboard = () => {
             {/* Quote Card */}
             <Card sx={{ bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)' }}>
               <CardContent sx={{ display: 'flex', gap: 2, p: 3, '&:last-child': { pb: 3 } }}>
-                <QuoteIcon sx={{ fontSize: 32, color: '#6366F1' }} />
+                <QuoteIcon sx={{ fontSize: 32, color: '#6366F1', flexShrink: 0 }} />
                 <Box>
                   <Typography variant="body2" fontStyle="italic" mb={1.5} lineHeight={1.5} color="text.secondary">
                     "The beautiful thing about learning is that nobody can take it away from you."
@@ -368,7 +368,7 @@ const Dashboard = () => {
                     { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
                   ].map((item, i) => (
                     <Box key={i}>
-                      <Box display="flex" justifyContent="space-between" mb={1}>
+                      <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
                         <Box display="flex" alignItems="center" gap={1.5}>
                           <ChartIcon sx={{ fontSize: 16, color: item.color }} />
                           <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
@@ -402,7 +402,7 @@ const Dashboard = () => {
                 
                 {/* Simulated SVG Line Chart */}
                 <Box sx={{ position: 'relative', height: 120, mb: 1 }}>
-                  <svg viewBox="0 0 400 120" style={{ width: '100%', height: '100%' }}>
+                  <svg viewBox="0 0 400 120" style={{ width: '100%', height: '100%' }} preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.5" />
