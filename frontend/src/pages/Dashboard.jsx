@@ -61,7 +61,7 @@ const Dashboard = () => {
   return (
     <Box className="animate-fade-in" sx={{ pb: 6 }}>
       {/* Header Area */}
-      <Box mb={3} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+      <Box mb={3} display="flex" flexDirection="column" gap={2}>
         <Box>
           <Typography variant="h4" fontWeight="800" sx={{ mb: 0.5 }}>
             Good morning, Scholar! 👋
@@ -72,31 +72,33 @@ const Dashboard = () => {
         </Box>
 
         {/* Streak Card as Top Horizontal Banner */}
-        <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', backdropFilter: 'none', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <CardContent sx={{ py: 1, px: 3, '&:last-child': { pb: 1 }, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <FireIcon sx={{ fontSize: 32, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
-              <Box>
-                <Typography variant="subtitle2" fontWeight="700">You're on a streak!</Typography>
-                <Typography variant="caption" color="text.secondary">7 days in a row</Typography>
-              </Box>
-            </Box>
-            <Box display="flex" gap={1.5}>
-              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-                <Box key={i} display="flex" flexDirection="column" alignItems="center">
-                  <Box sx={{ 
-                    width: 20, height: 20, borderRadius: '50%', 
-                    bgcolor: i < 5 ? '#F59E0B' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
-                    color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.65rem', fontWeight: 'bold', mb: 0.5
-                  }}>
-                    {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>{day}</Typography>
+        <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', backdropFilter: 'none', border: '1px solid rgba(245,158,11,0.2)', overflowX: 'auto' }}>
+          <CardContent sx={{ py: 1, px: 3, '&:last-child': { pb: 1 } }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="nowrap" gap={4} sx={{ minWidth: 'max-content' }}>
+              <Stack direction="row" alignItems="center" gap={1.5} flexWrap="nowrap">
+                <FireIcon sx={{ fontSize: 32, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="700" whiteSpace="nowrap">You're on a streak!</Typography>
+                  <Typography variant="caption" color="text.secondary" whiteSpace="nowrap">7 days in a row</Typography>
                 </Box>
-              ))}
-            </Box>
+              </Stack>
+              <Stack direction="row" gap={2} flexWrap="nowrap">
+                {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                  <Stack key={i} direction="column" alignItems="center" flexWrap="nowrap">
+                    <Box sx={{ 
+                      width: 24, height: 24, borderRadius: '50%', 
+                      bgcolor: i < 5 ? '#F59E0B' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
+                      color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5
+                    }}>
+                      {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{day}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Stack>
           </CardContent>
         </Card>
       </Box>
