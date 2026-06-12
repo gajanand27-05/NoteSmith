@@ -4,41 +4,81 @@ export const getTheme = (mode) => createTheme({
   palette: {
     mode,
     primary: {
-      main: '#1976d2',
+      main: '#6366F1', // Indigo primary
+      light: '#818CF8',
+      dark: '#4F46E5',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#059669', // Emerald accent
+      light: '#34D399',
+      dark: '#047857',
     },
     background: {
-      default: mode === 'light' ? '#f5f5f5' : '#121212',
-      paper: mode === 'light' ? '#ffffff' : '#1e1e1e',
+      default: mode === 'light' ? 'transparent' : '#0F172A',
+      paper: mode === 'light' ? 'rgba(255, 255, 255, 0.75)' : 'rgba(30, 41, 59, 0.75)',
     },
+    text: {
+      primary: mode === 'light' ? '#1E1B4B' : '#F8FAFC',
+      secondary: mode === 'light' ? '#64748B' : '#94A3B8',
+    }
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Plus Jakarta Sans", "Inter", "Roboto", sans-serif',
     h1: {
       fontSize: '2.5rem',
-      fontWeight: 500,
+      fontWeight: 800,
+      letterSpacing: '-0.02em',
     },
     h2: {
       fontSize: '2rem',
-      fontWeight: 500,
+      fontWeight: 700,
+      letterSpacing: '-0.01em',
     },
+    h3: {
+      fontSize: '1.75rem',
+      fontWeight: 700,
+    },
+    h4: {
+      fontSize: '1.5rem',
+      fontWeight: 600,
+    },
+    h5: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
+    },
+    h6: {
+      fontSize: '1rem',
+      fontWeight: 600,
+    },
+    button: {
+      fontWeight: 600,
+    }
+  },
+  shape: {
+    borderRadius: 16,
   },
   components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
+      defaultProps: {
+        className: 'glass-card animate-fade-in',
+      }
+    },
+    MuiCard: {
+      defaultProps: {
+        className: 'glass-card animate-fade-in',
+      }
+    },
     MuiButton: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
-          borderRadius: 8,
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
           borderRadius: 12,
-          boxShadow: mode === 'light' ? '0 4px 6px rgba(0,0,0,0.1)' : '0 4px 20px rgba(0,0,0,0.5)',
+          textTransform: 'none',
+          padding: '8px 24px',
         },
       },
     },
