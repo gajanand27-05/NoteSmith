@@ -282,29 +282,31 @@ const Dashboard = () => {
             
             {/* Streak Card */}
             <Card>
-              <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="700">You're on a streak! <FireIcon fontSize="small" sx={{ color: '#F59E0B', verticalAlign: 'text-bottom' }}/></Typography>
-                    <Typography variant="caption" color="text.secondary">7 days in a row</Typography>
-                  </Box>
-                  <FireIcon sx={{ fontSize: 40, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-                    <Box key={i} display="flex" flexDirection="column" alignItems="center">
-                      <Box sx={{ 
-                        width: 20, height: 20, borderRadius: '50%', 
-                        bgcolor: i < 5 ? 'primary.main' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
-                        color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.65rem', fontWeight: 'bold', mb: 0.5
-                      }}>
-                        {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
-                      </Box>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{day}</Typography>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
+                  <Box display="flex" alignItems="center" gap={1.5}>
+                    <FireIcon sx={{ fontSize: 36, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="700">You're on a streak!</Typography>
+                      <Typography variant="caption" color="text.secondary">7 days in a row</Typography>
                     </Box>
-                  ))}
+                  </Box>
+                  <Box display="flex" gap={1}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                      <Box key={i} display="flex" flexDirection="column" alignItems="center">
+                        <Box sx={{ 
+                          width: 20, height: 20, borderRadius: '50%', 
+                          bgcolor: i < 5 ? 'primary.main' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
+                          color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.65rem', fontWeight: 'bold', mb: 0.5
+                        }}>
+                          {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>{day}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
