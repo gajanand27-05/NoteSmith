@@ -110,24 +110,24 @@ const Dashboard = () => {
                       }} 
                     />
 
-                    <Grid container spacing={2} sx={{ maxWidth: 350 }}>
-                      <Grid item xs={3}>
-                        <Typography variant="h6" fontWeight="700">{stats.pdf_count}</Typography>
-                        <Typography variant="caption" color="text.secondary">PDFs</Typography>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Typography variant="h6" fontWeight="700">{stats.chunk_count}</Typography>
-                        <Typography variant="caption" color="text.secondary">Chunks</Typography>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Typography variant="h6" fontWeight="700">28</Typography>
-                        <Typography variant="caption" color="text.secondary">Quizzes</Typography>
-                      </Grid>
-                      <Grid item xs={3}>
-                        <Typography variant="h6" fontWeight="700">18h</Typography>
-                        <Typography variant="caption" color="text.secondary">Study Time</Typography>
-                      </Grid>
-                    </Grid>
+                    <Stack direction="row" gap={2} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1 }}>
+                      {[
+                        { val: stats.pdf_count, label: 'PDFs' },
+                        { val: stats.chunk_count, label: 'Chunks' },
+                        { val: 28, label: 'Quizzes' },
+                        { val: '18h', label: 'Study Time' }
+                      ].map((stat, i) => (
+                        <Box key={i} sx={{ 
+                          border: '1px solid rgba(255,255,255,0.08)', 
+                          borderRadius: 2, py: 1.5, px: 2, flex: 1, minWidth: 80,
+                          bgcolor: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column',
+                          alignItems: 'flex-start'
+                        }}>
+                          <Typography variant="h6" fontWeight="700" lineHeight={1}>{stat.val}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.5 }}>{stat.label}</Typography>
+                        </Box>
+                      ))}
+                    </Stack>
 
                     <Button variant="outlined" size="small" sx={{ mt: 3, borderRadius: '20px' }}>
                       View Analytics &gt;
@@ -149,37 +149,6 @@ const Dashboard = () => {
                     }} />
                   </Box>
                 </Box>
-              </CardContent>
-            </Card>
-
-            {/* Streak Card - Moved below Overall Mastery */}
-            <Card sx={{ bgcolor: 'rgba(255,255,255,0.02)', backdropFilter: 'none', border: '1px solid rgba(245,158,11,0.2)', overflowX: 'auto' }}>
-              <CardContent sx={{ py: 1.5, px: 3, '&:last-child': { pb: 1.5 } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="nowrap" gap={4} sx={{ minWidth: 'max-content' }}>
-                  <Stack direction="row" alignItems="center" gap={1.5} flexWrap="nowrap">
-                    <FireIcon sx={{ fontSize: 32, color: '#F59E0B', filter: 'drop-shadow(0 0 10px rgba(245,158,11,0.5))' }} />
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="700" whiteSpace="nowrap">You're on a streak!</Typography>
-                      <Typography variant="caption" color="text.secondary" whiteSpace="nowrap">7 days in a row</Typography>
-                    </Box>
-                  </Stack>
-                  <Stack direction="row" gap={2} flexWrap="nowrap">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-                      <Stack key={i} direction="column" alignItems="center" flexWrap="nowrap">
-                        <Box sx={{ 
-                          width: 24, height: 24, borderRadius: '50%', 
-                          bgcolor: i < 5 ? '#F59E0B' : (i === 5 ? 'text.primary' : 'rgba(255,255,255,0.1)'),
-                          color: i < 5 ? '#fff' : (i === 5 ? 'background.default' : 'text.secondary'),
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.75rem', fontWeight: 'bold', mb: 0.5
-                        }}>
-                          {i < 5 ? '✓' : (i === 5 ? '⚡' : '')}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{day}</Typography>
-                      </Stack>
-                    ))}
-                  </Stack>
-                </Stack>
               </CardContent>
             </Card>
 
@@ -313,6 +282,41 @@ const Dashboard = () => {
         <Grid item xs={12} lg={4}>
           <Stack spacing={3}>
             
+            {/* Streak Card */}
+            <Card sx={{ bgcolor: '#0B0A10', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
+              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                <Box position="relative" zIndex={1}>
+                  <Typography variant="subtitle1" fontWeight="700" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    You're on a streak! <FireIcon fontSize="small" sx={{ color: '#F97316' }} />
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
+                    7 days in a row
+                  </Typography>
+                  <Stack direction="row" gap={2}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                      <Stack key={i} direction="column" alignItems="center" gap={1}>
+                        <Box sx={{ 
+                          width: 28, height: 28, borderRadius: '50%', 
+                          bgcolor: i < 5 ? '#6366F1' : (i === 5 ? '#FFF' : 'rgba(255,255,255,0.05)'),
+                          color: i < 5 ? '#fff' : (i === 5 ? '#000' : 'text.secondary'),
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.85rem', fontWeight: i === 5 ? '900' : 'bold'
+                        }}>
+                          {i < 5 ? '✓' : (i === 5 ? 'S' : '')}
+                        </Box>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: i === 5 ? '#FFF' : 'text.secondary', fontWeight: i === 5 ? '700' : '400' }}>{day}</Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                </Box>
+                {/* Giant Fire Icon on Right */}
+                <FireIcon sx={{ 
+                  position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 140, color: '#F97316', filter: 'drop-shadow(0 0 40px rgba(249,115,22,0.5))', opacity: 0.8, zIndex: 0
+                }} />
+              </CardContent>
+            </Card>
+
             {/* Quote Card */}
             <Card sx={{ bgcolor: 'rgba(99,102,241,0.05)' }}>
               <CardContent sx={{ display: 'flex', gap: 1.5, p: 2.5, '&:last-child': { pb: 2.5 } }}>
