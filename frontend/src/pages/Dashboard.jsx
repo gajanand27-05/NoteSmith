@@ -74,7 +74,7 @@ const Dashboard = () => {
 
       <Grid container spacing={3}>
         {/* LEFT COLUMN - Main Content */}
-        <Grid item xs={12} md={7} xl={8}>
+        <Grid item xs={12} sm={8} lg={8}>
           <Stack spacing={3}>
             
             {/* Hero Card: Overall Mastery */}
@@ -299,7 +299,7 @@ const Dashboard = () => {
         </Grid>
 
         {/* RIGHT COLUMN - Sidebar stats */}
-        <Grid item xs={12} md={5} xl={4}>
+        <Grid item xs={12} sm={4} lg={4}>
           <Stack spacing={3}>
             
             {/* Streak Card */}
