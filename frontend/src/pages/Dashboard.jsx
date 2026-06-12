@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs } from '../api';
 import { useNavigate } from 'react-router-dom';
+import Crystal3D from '../components/Crystal3D';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
@@ -134,19 +135,20 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* Decorative glowing background element */}
+                  {/* 3D Rotating Crystal */}
                   <Box sx={{
                     position: 'absolute', right: '-5%', top: '50%', transform: 'translateY(-50%)',
-                    width: '250px', height: '250px',
-                    background: 'radial-gradient(circle, rgba(168,85,247,0.3) 0%, rgba(168,85,247,0) 70%)',
-                    zIndex: 0, pointerEvents: 'none', display: 'block'
+                    width: '300px', height: '300px', zIndex: 0, display: 'block'
                   }}>
+                    {/* Glowing aura behind the crystal */}
                     <Box sx={{
                       position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                      width: '80px', height: '120px', background: 'linear-gradient(135deg, #A855F7, #6366F1)',
-                      clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-                      boxShadow: '0 0 40px #A855F7', opacity: 0.8
+                      width: '150px', height: '150px',
+                      background: 'radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(168,85,247,0) 70%)',
+                      zIndex: -1, pointerEvents: 'none'
                     }} />
+                    
+                    <Crystal3D />
                   </Box>
                 </Box>
               </CardContent>
