@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs } from '../api';
 import { useNavigate } from 'react-router-dom';
+import Crystal3D from '../components/Crystal3D';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
@@ -134,31 +135,12 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* 3D Spinning Logo Image */}
+                  {/* 3D Rotating Crystal Scene */}
                   <Box sx={{
-                    position: 'absolute', right: '-5%', top: '50%', transform: 'translateY(-50%)',
-                    width: '350px', height: '350px', zIndex: 0, display: 'flex', justifyContent: 'center', alignItems: 'center'
+                    position: 'absolute', right: '-8%', top: '50%', transform: 'translateY(-50%)',
+                    width: '400px', height: '400px', zIndex: 0, display: 'block'
                   }}>
-                    <img 
-                      src="/3Dlogo.png" 
-                      alt="3D Logo" 
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'contain',
-                        animation: 'spin3D 10s linear infinite',
-                        transformStyle: 'preserve-3d',
-                        mixBlendMode: 'screen'
-                      }} 
-                    />
-                    <style>
-                      {`
-                        @keyframes spin3D {
-                          from { transform: perspective(1000px) rotateY(0deg); }
-                          to { transform: perspective(1000px) rotateY(360deg); }
-                        }
-                      `}
-                    </style>
+                    <Crystal3D />
                   </Box>
                 </Box>
               </CardContent>
