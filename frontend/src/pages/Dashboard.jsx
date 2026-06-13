@@ -14,7 +14,6 @@ import {
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs } from '../api';
 import { useNavigate } from 'react-router-dom';
-import Crystal3D from '../components/Crystal3D';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
@@ -135,12 +134,24 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* 3D Rotating Crystal Scene */}
+                  {/* Looping Crystal Video */}
                   <Box sx={{
                     position: 'absolute', right: '-8%', top: '50%', transform: 'translateY(-50%)',
-                    width: '400px', height: '400px', zIndex: 0, display: 'block'
+                    width: '450px', height: '450px', zIndex: 0, display: 'flex', justifyContent: 'center', alignItems: 'center'
                   }}>
-                    <Crystal3D />
+                    <video 
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline
+                      src="/crystal_loop.mp4" 
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        objectFit: 'contain',
+                        mixBlendMode: 'screen'
+                      }} 
+                    />
                   </Box>
                 </Box>
               </CardContent>
