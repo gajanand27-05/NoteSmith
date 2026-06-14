@@ -134,19 +134,11 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* Looping Crystal Video */}
+                  {/* Full-bleed right-side video background */}
                   <Box sx={{
-                    position: 'absolute', right: '-8%', top: '50%', transform: 'translateY(-50%)',
-                    width: '450px', height: '450px', zIndex: 0, display: 'flex', justifyContent: 'center', alignItems: 'center'
+                    position: 'absolute', right: 0, top: 0, bottom: 0,
+                    width: '60%', zIndex: 0, display: 'flex', justifyContent: 'flex-end'
                   }}>
-                    {/* Subtle purple aura behind the video to tie it into the theme */}
-                    <Box sx={{
-                      position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                      width: '250px', height: '250px',
-                      background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(168,85,247,0) 70%)',
-                      zIndex: -1, pointerEvents: 'none'
-                    }} />
-                    
                     <video 
                       autoPlay 
                       loop 
@@ -157,9 +149,9 @@ const Dashboard = () => {
                         width: '100%', 
                         height: '100%', 
                         objectFit: 'cover',
-                        mixBlendMode: 'screen',
-                        maskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)',
-                        WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)'
+                        // Smoothly fade the left edge of the video into transparency so it perfectly merges with the card's background
+                        maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)',
+                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)'
                       }} 
                     />
                   </Box>

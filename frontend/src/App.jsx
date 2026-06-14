@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ColorModeProvider } from './ColorModeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
@@ -13,12 +14,8 @@ import Tutor from './pages/Tutor';
 import PaperAnalyzer from './pages/PaperAnalyzer';
 import StudyLoop from './pages/StudyLoop';
 
-// Placeholder components for other routes
-const Placeholder = ({ name }) => (
-  <div>
-    <h2>{name}</h2>
-    <p>This page is currently under development.</p>
-  </div>
+const RouteBoundary = ({ children }) => (
+  <ErrorBoundary key={window.location.pathname}>{children}</ErrorBoundary>
 );
 
 function App() {
@@ -27,16 +24,16 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="upload" element={<Upload />} />
-            <Route path="summarize" element={<Summarize />} />
-            <Route path="qa" element={<QA />} />
-            <Route path="questions" element={<Questions />} />
-            <Route path="flashcards" element={<Flashcards />} />
-            <Route path="quiz" element={<Quiz />} />
-            <Route path="study-loop" element={<StudyLoop />} />
-            <Route path="tutor" element={<Tutor />} />
-            <Route path="paper-analyzer" element={<PaperAnalyzer />} />
+            <Route index element={<RouteBoundary><Dashboard /></RouteBoundary>} />
+            <Route path="upload" element={<RouteBoundary><Upload /></RouteBoundary>} />
+            <Route path="summarize" element={<RouteBoundary><Summarize /></RouteBoundary>} />
+            <Route path="qa" element={<RouteBoundary><QA /></RouteBoundary>} />
+            <Route path="questions" element={<RouteBoundary><Questions /></RouteBoundary>} />
+            <Route path="flashcards" element={<RouteBoundary><Flashcards /></RouteBoundary>} />
+            <Route path="quiz" element={<RouteBoundary><Quiz /></RouteBoundary>} />
+            <Route path="study-loop" element={<RouteBoundary><StudyLoop /></RouteBoundary>} />
+            <Route path="tutor" element={<RouteBoundary><Tutor /></RouteBoundary>} />
+            <Route path="paper-analyzer" element={<RouteBoundary><PaperAnalyzer /></RouteBoundary>} />
           </Route>
         </Routes>
       </Router>

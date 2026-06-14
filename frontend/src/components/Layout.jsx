@@ -125,6 +125,7 @@ const Layout = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <CssBaseline />
       <AppBar
         position="fixed"
@@ -236,9 +237,11 @@ const Layout = () => {
       </Box>
       <Box
         component="main"
-        sx={{ 
-          flexGrow: 1, 
-          p: 3, 
+        id="main-content"
+        tabIndex={-1}
+        sx={{
+          flexGrow: 1,
+          p: 3,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
           bgcolor: 'background.default',
