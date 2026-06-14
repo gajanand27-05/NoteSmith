@@ -1,441 +1,357 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  Grid, Typography, Box, Card, CardContent, CircularProgress,
-  LinearProgress, Button, IconButton, Avatar, Chip, Stack
+  Grid, Stack, LinearProgress, Button, Typography, Box, CardContent 
 } from '@mui/material';
-import { 
+import {
+  CloudUpload as UploadIcon,
   LocalFireDepartment as FireIcon,
   AutoGraph as ChartIcon,
-  MoreHoriz as MoreIcon,
   Psychology as BrainIcon,
   MenuBook as BookIcon,
   FormatQuote as QuoteIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
+  TrendingUp as TrendingIcon,
+  Lightbulb as BulbIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
+
+// New design system components
+import PageHeader from '../components/PageHeader';
+import SectionCard from '../components/SectionCard';
+import StatCard from '../components/StatCard';
+import { PageSkeleton } from '../components/LoadingSkeleton';
+import EmptyState from '../components/EmptyState';
+
+// API
 import { getDashboardStats, listPdfs } from '../api';
-import { useNavigate } from 'react-router-dom';
+import { enqueueSnackbar } from 'notistack';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
   const [recentPdfs, setRecentPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, pdfsRes] = await Promise.all([
-          getDashboardStats(),
-          listPdfs()
-        ]);
-        setStats(statsRes.data);
-        // Get the 3 most recently uploaded PDFs
-        setRecentPdfs((pdfsRes.data || []).slice(0, 3));
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // Generate a random progress value for demonstration purposes,
-  // since we don't have actual per-PDF mastery tracking yet.
-  const getProgress = (id) => {
+  // Mock mastery until real tracking exists
+  const getProgress = useCallback((id) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    return Math.abs(hash % 60) + 20; // 20% to 80%
-  };
+    return Math.abs(hash % 60) + 20;
+  }, []);
 
-  const colors = ["#818CF8", "#38BDF8", "#34D399"];
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [statsRes, pdfsRes] = await Promise.all([
+        getDashboardStats(),
+        listPdfs()
+      ]);
+      setStats(statsRes.data);
+      setRecentPdfs((pdfsRes.data || []).slice(0, 3));
+    } catch (err) {
+      console.error('Dashboard fetch failed:', err);
+      setError(err);
+      enqueueSnackbar('Failed to load dashboard data', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { 
+    fetchData(); 
+  }, [fetchData]);
+
+  const avgMastery = useMemo(() => {
+    if (recentPdfs.length === 0) return 0;
+    return Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length);
+  }, [recentPdfs, getProgress]);
+
+  const metricCards = useMemo(() => [
+    { icon: <PdfIcon />, label: 'PDFs', value: stats.pdf_count, color: 'primary' },
+    { icon: <BookIcon />, label: 'Chunks', value: stats.chunk_count, color: 'primary' },
+    { icon: <TrendingIcon />, label: 'Quizzes', value: '—', color: 'secondary' },
+    { icon: <SchoolIcon />, label: 'Study Time', value: '—', color: 'success' },
+  ], [stats]);
+
+  if (loading) {
+    return <PageSkeleton />;
+  }
 
   return (
     <Box className="animate-fade-in" sx={{ pb: 6 }}>
-      {/* Header Area */}
-      <Box mb={3} display="flex" flexDirection="column" gap={2}>
-        <Box>
-          <Typography variant="h4" fontWeight="800" sx={{ mb: 0.5 }}>
-            Good morning, Scholar! 👋
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Let's make today a productive learning day.
-          </Typography>
-        </Box>
-      </Box>
+      {/* PageHeader with breadcrumbs, title, subtitle, Upload action */}
+      <PageHeader
+        icon={<BrainIcon />}
+        title="Dashboard"
+        subtitle="Track your progress and continue your learning journey."
+        actions={
+          <Button
+            variant="outlined"
+            startIcon={<UploadIcon />}
+            onClick={() => navigate('/upload')}
+            sx={{ borderRadius: 2 }}
+          >
+            Upload Notes
+          </Button>
+        }
+      />
 
-      <Grid container spacing={3} wrap="nowrap" sx={{ minWidth: 900 }}>
-        {/* LEFT COLUMN - Main Content */}
-        <Grid item xs={8}>
+      {/* Responsive 2-column grid */}
+      <Grid container spacing={3}>
+        {/* LEFT COLUMN - 8/12 on desktop, full on mobile */}
+        <Grid item xs={12} md={8}>
           <Stack spacing={3}>
-            
-            {/* Hero Card: Overall Mastery */}
-            <Card sx={{ 
-              position: 'relative', overflow: 'hidden', p: 0,
-              background: 'linear-gradient(145deg, rgba(99,102,241,0.05) 0%, rgba(168,85,247,0.05) 100%)'
-            }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Box display="flex" justifyContent="space-between">
-                  <Box sx={{ flex: 1, zIndex: 1 }}>
-                    <Typography variant="overline" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>
-                      <BrainIcon fontSize="small" /> OVERALL MASTERY
-                    </Typography>
-                    <Typography variant="h2" fontWeight="800" sx={{ mt: 1, mb: 0.5, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-                      {recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)}%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      You're doing great! Keep it up.
-                    </Typography>
-                    
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)} 
-                      sx={{ 
-                        height: 6, 
-                        borderRadius: 3, 
-                        mb: 3, 
-                        maxWidth: 250,
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        '& .MuiLinearProgress-bar': {
-                          background: 'linear-gradient(90deg, #6366F1, #A855F7)'
-                        }
-                      }} 
-                    />
-
-                    <Stack direction="row" gap={1.5} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1, flexWrap: 'wrap' }}>
-                      {[
-                        { val: stats.pdf_count, label: 'PDFs' },
-                        { val: stats.chunk_count, label: 'Chunks' },
-                        { val: 28, label: 'Quizzes' },
-                        { val: '18h', label: 'Study Time' }
-                      ].map((stat, i) => (
-                        <Box key={i} sx={{ 
-                          border: '1px solid rgba(255,255,255,0.08)', 
-                          borderRadius: 2, py: 1.5, px: 2, flex: 1, minWidth: 70,
-                          bgcolor: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column',
-                          alignItems: 'flex-start'
-                        }}>
-                          <Typography variant="h6" fontWeight="700" lineHeight={1}>{stat.val}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.5, whiteSpace: 'nowrap' }}>{stat.label}</Typography>
-                        </Box>
-                      ))}
-                    </Stack>
-
-                    <Button variant="outlined" size="small" sx={{ mt: 3, borderRadius: '20px' }}>
-                      View Analytics &gt;
-                    </Button>
-                  </Box>
-
-                  {/* Full-bleed right-side video background */}
-                  <Box sx={{
-                    position: 'absolute', right: 0, top: 0, bottom: 0,
-                    width: '60%', zIndex: 0, display: 'flex', justifyContent: 'flex-end'
-                  }}>
-                    <video 
-                      autoPlay 
-                      loop 
-                      muted 
-                      playsInline
-                      src="/crystal_loop.mp4" 
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover',
-                        // Smoothly fade the left edge of the video into transparency so it perfectly merges with the card's background
-                        maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)',
-                        WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)'
-                      }} 
-                    />
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Continue Learning - Using actual PDFs */}
-            <Box>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap">
-                <Typography variant="h6" fontWeight="700">Continue Learning</Typography>
-                <Button size="small" sx={{ color: 'primary.light', textTransform: 'none' }} onClick={() => navigate('/upload')}>
-                  View all PDFs &rarr;
+            {/* 1. MASTERY HERO */}
+            <SectionCard
+              icon={<BrainIcon />}
+              title="Overall Mastery"
+              subtitle={`${recentPdfs.length} recent document${recentPdfs.length !== 1 ? 's' : ''}`}
+              action={
+                <Button size="small" variant="outlined" sx={{ borderRadius: 2 }}>
+                  View Analytics →
                 </Button>
+              }
+            >
+              <Stack spacing={3}>
+                <Stack direction="row" alignItems="center" spacing={4} sx={{ flexWrap: 'wrap', gap: 2 }}>
+                  <Box>
+                    <Typography variant="h2" fontWeight={800} sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' }, lineHeight: 1 }}>
+                      {avgMastery}%
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {recentPdfs.length > 0 ? 'Average across recent documents' : 'Upload a PDF to start tracking mastery'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 200 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={avgMastery}
+                      sx={{
+                        height: 8,
+                        borderRadius: 4,
+                        '& .MuiLinearProgress-bar': {
+                          background: 'linear-gradient(90deg, #6366F1, #A855F7)',
+                          borderRadius: 4,
+                        },
+                      }}
+                    />
+                  </Box>
+                </Stack>
+
+                {/* Inline metric chips */}
+                <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ gap: 1.5 }}>
+                  {metricCards.map((m, i) => (
+                    <StatCard 
+                      key={i} 
+                      icon={m.icon} 
+                      label={m.label} 
+                      value={m.value} 
+                      color={m.color} 
+                      sx={{ minWidth: 100, flex: 1 }} 
+                    />
+                  ))}
+                </Stack>
               </Stack>
-              
+            </SectionCard>
+
+            {/* 2. CONTINUE LEARNING */}
+            <SectionCard
+              title="Continue Learning"
+              subtitle="Pick up where you left off"
+              action={
+                <Button size="small" sx={{ color: 'primary.main', textTransform: 'none' }} onClick={() => navigate('/upload')}>
+                  View all PDFs →
+                </Button>
+              }
+            >
               {recentPdfs.length === 0 ? (
-                <Card sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.02)' }}>
-                  <PdfIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1, opacity: 0.5 }} />
-                  <Typography variant="body1" color="text.secondary">You haven't uploaded any PDFs yet.</Typography>
-                  <Button variant="contained" size="small" sx={{ mt: 2 }} onClick={() => navigate('/upload')}>Upload PDF</Button>
-                </Card>
+                <EmptyState
+                  icon={<PdfIcon />}
+                  title="No documents yet"
+                  description="Upload your first PDF, syllabus, or question paper to start studying."
+                  primaryAction={
+                    <Button variant="contained" startIcon={<UploadIcon />} onClick={() => navigate('/upload')}>
+                      Upload PDF
+                    </Button>
+                  }
+                />
               ) : (
-                <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
+                <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 } }}>
                   {recentPdfs.map((pdf, i) => {
                     const progress = getProgress(pdf.id);
-                    const colorThemes = [
-                      { main: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
-                      { main: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
-                      { main: '#10B981', bg: 'rgba(16,185,129,0.1)' },
-                      { main: '#F97316', bg: 'rgba(249,115,22,0.1)' }
+                    const themes = [
+                      { main: '#8B5CF6' }, { main: '#3B82F6' }, { main: '#10B981' }, { main: '#F97316' },
                     ];
-                    const theme = colorThemes[i % colorThemes.length];
+                    const theme = themes[i % themes.length];
                     return (
-                      <Box key={pdf.id} sx={{ minWidth: 240, flex: 1 }}>
-                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <CardContent sx={{ flex: 1, p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box key={pdf.id} sx={{ minWidth: 260, flex: 1 }}>
+                        <SectionCard noPadding sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                          <CardContent sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
                             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                              <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: theme.main, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: theme.main, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <BookIcon sx={{ fontSize: 18, color: '#fff' }} />
                               </Box>
-                              <IconButton size="small" sx={{ color: 'text.secondary', p: 0 }}><MoreIcon fontSize="small" /></IconButton>
                             </Box>
-                            
-                            <Typography variant="subtitle2" fontWeight="700" sx={{ 
-                              mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', 
-                              overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3, height: 36
-                            }} title={pdf.original_name}>
+                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3, height: 36 }} title={pdf.original_name}>
                               {pdf.original_name.replace('.pdf', '')}
                             </Typography>
-                            
                             <Box sx={{ mt: 'auto' }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem' }}>
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.7rem' }}>
                                 {progress}% Mastered
                               </Typography>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={progress} 
-                                sx={{ 
-                                  height: 4, borderRadius: 2, mb: 2,
-                                  backgroundColor: 'rgba(255,255,255,0.05)',
-                                  '& .MuiLinearProgress-bar': { backgroundColor: theme.main }
-                                }} 
-                              />
-                              <Grid container spacing={1}>
-                                <Grid item xs={4.5}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', 
-                                    boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}>Study</Button>
-                                </Grid>
-                                <Grid item xs={4.5}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', 
-                                    boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}>Quiz</Button>
-                                </Grid>
-                                <Grid item xs={3}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.secondary', 
-                                    boxShadow: 'none', minWidth: 0, p: 0, py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}><MoreIcon fontSize="small" /></Button>
-                                </Grid>
-                              </Grid>
+                              <LinearProgress variant="determinate" value={progress} sx={{ height: 4, borderRadius: 2, mb: 2, '& .MuiLinearProgress-bar': { backgroundColor: theme.main } }} />
+                              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                <Button fullWidth size="small" variant="outlined" onClick={() => navigate('/qa')}>Study</Button>
+                                <Button fullWidth size="small" variant="outlined" onClick={() => navigate('/quiz')}>Quiz</Button>
+                              </Stack>
                             </Box>
                           </CardContent>
-                        </Card>
+                        </SectionCard>
                       </Box>
                     );
                   })}
                 </Stack>
               )}
-            </Box>
+            </SectionCard>
 
-            {/* Recommended Next Steps */}
-            <Box>
-              <Typography variant="h6" fontWeight="700" mb={2}>Recommended Next Steps</Typography>
-              <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
-                        Focus on 6 weak areas to improve mastery.
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#8B5CF6', borderRadius: 2, px: 3 }}>Review Now</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: -20, bottom: -20, width: 100, height: 100, border: '1px solid rgba(139,92,246,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Box sx={{ width: 60, height: 60, border: '1px solid rgba(139,92,246,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <Box sx={{ width: 20, height: 20, bgcolor: '#8B5CF6', borderRadius: '50%', boxShadow: '0 0 20px #8B5CF6' }} />
-                      </Box>
-                    </Box>
-                  </Card>
-                </Box>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#111827', border: '1px solid rgba(59,130,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" color="#60A5FA" mb={0.5}>Practice Quiz</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
-                        12 questions on Neural Networks
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#3B82F6', borderRadius: 2, px: 3 }}>Start Quiz</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: 10, bottom: 20, opacity: 0.5 }}>
-                      <Box sx={{ width: 60, height: 60, border: '1px solid #3B82F6', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(59,130,246,0.1)', boxShadow: '0 0 30px rgba(59,130,246,0.2)' }}>
-                        <Typography variant="h4" color="#60A5FA">?</Typography>
-                      </Box>
-                    </Box>
-                  </Card>
-                </Box>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#064E3B', border: '1px solid rgba(16,185,129,0.2)', height: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" color="#34D399" mb={0.5}>AI Tutor</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '60%' }}>
-                        Ask anything from your PDFs
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#10B981', color: '#000', fontWeight: 'bold', borderRadius: 2, px: 3 }}>Ask Tutor</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: 0, bottom: -10 }}>
-                       <BrainIcon sx={{ fontSize: 100, color: '#34D399', opacity: 0.3 }} />
-                    </Box>
-                  </Card>
-                </Box>
+            {/* 3. RECOMMENDED NEXT STEPS */}
+            <SectionCard title="Recommended Next Steps" subtitle="AI-generated suggestions based on your activity">
+              <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'divider', borderRadius: 3 } }}>
+                {[
+                  { icon: <BulbIcon />, title: 'Review Weak Topics', desc: 'Focus on 6 weak areas to improve mastery', cta: 'Review Now', color: '#8B5CF6', path: '/questions' },
+                  { icon: <TrendingIcon />, title: 'Practice Quiz', desc: '12 adaptive questions on your recent topics', cta: 'Start Quiz', color: '#3B82F6', path: '/quiz' },
+                  { icon: <SchoolIcon />, title: 'AI Tutor', desc: 'Ask anything from your uploaded PDFs', cta: 'Ask Tutor', color: '#10B981', path: '/tutor' },
+                ].map((step, i) => (
+                  <Box key={i} sx={{ minWidth: 280, flex: 1 }}>
+                    <SectionCard noPadding sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+                      <CardContent sx={{ p: 2.5, display: 'flex', flexDirection: 'column' }}>
+                        <Typography variant="subtitle2" fontWeight={700} color={step.color} mb={0.5}>{step.title}</Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 36, flex: 1 }}>{step.desc}</Typography>
+                        <Button 
+                          variant="contained" 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: step.color, 
+                            color: step.color === '#10B981' ? '#000' : '#fff', 
+                            borderRadius: 2, 
+                            alignSelf: 'flex-start',
+                            '&:hover': { bgcolor: step.color, filter: 'brightness(0.9)' }
+                          }} 
+                          onClick={() => navigate(step.path)}
+                        >
+                          {step.cta}
+                        </Button>
+                      </CardContent>
+                    </SectionCard>
+                  </Box>
+                ))}
               </Stack>
-            </Box>
-
+            </SectionCard>
           </Stack>
         </Grid>
 
-        {/* RIGHT COLUMN - Sidebar stats */}
-        <Grid item xs={4}>
+        {/* RIGHT COLUMN - 4/12 on desktop, hidden on mobile (or stacked below) */}
+        <Grid item xs={12} md={4}>
           <Stack spacing={3}>
-            
-            {/* Streak Card */}
-            <Card sx={{ bgcolor: '#0B0A10', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Box position="relative" zIndex={1}>
-                  <Typography variant="subtitle1" fontWeight="700" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    You're on a streak! <FireIcon fontSize="small" sx={{ color: '#F97316' }} />
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
-                    7 days in a row
-                  </Typography>
-                  <Stack direction="row" gap={1.5} flexWrap="nowrap">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
-                      <Stack key={i} direction="column" alignItems="center" gap={1}>
-                        <Box sx={{ 
-                          width: 28, height: 28, borderRadius: '50%', 
-                          bgcolor: i < 5 ? '#6366F1' : (i === 5 ? '#FFF' : 'rgba(255,255,255,0.05)'),
-                          color: i < 5 ? '#fff' : (i === 5 ? '#000' : 'text.secondary'),
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.85rem', fontWeight: i === 5 ? '900' : 'bold'
-                        }}>
-                          {i < 5 ? '✓' : (i === 5 ? 'S' : '')}
-                        </Box>
-                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: i === 5 ? '#FFF' : 'text.secondary', fontWeight: i === 5 ? '700' : '400' }}>{day}</Typography>
-                      </Stack>
-                    ))}
+            {/* STREAK CARD */}
+            <SectionCard icon={<FireIcon />} title="Study Streak" subtitle="7 days in a row 🔥">
+              <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center">
+                {['M','T','W','T','F','S','S'].map((day, i) => (
+                  <Stack key={i} direction="column" alignItems="center" spacing={0.5}>
+                    <Box sx={{ 
+                      width: 32, 
+                      height: 32, 
+                      borderRadius: '50%', 
+                      bgcolor: i < 5 ? 'primary.main' : 'transparent', 
+                      border: i >= 5 ? '1px solid' : 'none', 
+                      borderColor: 'divider', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontSize: '0.75rem', 
+                      fontWeight: 700, 
+                      color: i < 5 ? '#fff' : 'text.secondary' 
+                    }}>
+                      {i < 5 ? '✓' : day}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontSize: '0.65rem' }} color={i === 5 ? 'primary.main' : 'text.secondary'}>{day}</Typography>
                   </Stack>
-                </Box>
-                {/* Giant Fire Icon on Right */}
-                <FireIcon sx={{ 
-                  position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)',
-                  fontSize: 140, color: '#F97316', filter: 'drop-shadow(0 0 40px rgba(249,115,22,0.5))', opacity: 0.8, zIndex: 0
-                }} />
-              </CardContent>
-            </Card>
+                ))}
+              </Stack>
+            </SectionCard>
 
-            {/* Quote Card */}
-            <Card sx={{ bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <CardContent sx={{ display: 'flex', gap: 2, p: 3, '&:last-child': { pb: 3 } }}>
-                <QuoteIcon sx={{ fontSize: 32, color: '#6366F1', flexShrink: 0 }} />
+            {/* QUOTE CARD */}
+            <SectionCard icon={<QuoteIcon />} title="Daily Inspiration">
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <QuoteIcon sx={{ fontSize: 28, color: 'primary.main', opacity: 0.5 }} />
                 <Box>
-                  <Typography variant="body2" fontStyle="italic" mb={1.5} lineHeight={1.5} color="text.secondary">
+                  <Typography variant="body2" fontStyle="italic" color="text.secondary" sx={{ lineHeight: 1.6, mb: 1 }}>
                     "The beautiful thing about learning is that nobody can take it away from you."
                   </Typography>
-                  <Typography variant="caption" color="#6366F1" fontWeight="700">
-                    — B.B. King
-                  </Typography>
+                  <Typography variant="caption" color="primary.main" fontWeight={700}>— B.B. King</Typography>
                 </Box>
-              </CardContent>
-            </Card>
+              </Stack>
+            </SectionCard>
 
-            {/* Weak Topics */}
-            <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="subtitle1" fontWeight="700">Weak Topics</Typography>
-                  <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
-                </Stack>
-                <Stack spacing={2.5}>
-                  {[
-                    { topic: 'Neural Networks', progress: 24, color: '#EF4444' },
-                    { topic: 'Linear Regression', progress: 38, color: '#F97316' },
-                    { topic: 'Backpropagation', progress: 45, color: '#FBBF24' },
-                    { topic: 'Normalization', progress: 61, color: '#34D399' },
-                    { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
-                  ].map((item, i) => (
-                    <Box key={i}>
-                      <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
-                        <Box display="flex" alignItems="center" gap={1.5}>
-                          <ChartIcon sx={{ fontSize: 16, color: item.color }} />
-                          <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
-                        </Box>
-                        <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
-                      </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={item.progress} 
-                        sx={{ 
-                          height: 4, borderRadius: 2, 
-                          backgroundColor: 'rgba(255,255,255,0.05)',
-                          '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
-                        }} 
-                      />
+            {/* WEAK TOPICS */}
+            <SectionCard
+              title="Weak Topics"
+              subtitle="Areas needing attention"
+              action={<Button size="small" sx={{ color: 'primary.main', textTransform: 'none' }}>View all →</Button>}
+            >
+              <Stack spacing={2}>
+                {[
+                  { topic: 'Neural Networks', progress: 24, color: '#EF4444' },
+                  { topic: 'Linear Regression', progress: 38, color: '#F97316' },
+                  { topic: 'Backpropagation', progress: 45, color: '#FBBF24' },
+                  { topic: 'Normalization', progress: 61, color: '#34D399' },
+                  { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
+                ].map((item, i) => (
+                  <Box key={i}>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <ChartIcon sx={{ fontSize: 16, color: item.color }} />
+                        <Typography variant="caption" fontWeight={600} color="text.primary">{item.topic}</Typography>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
                     </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
+                    <LinearProgress variant="determinate" value={item.progress} sx={{ height: 4, borderRadius: 2, '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 } }} />
+                  </Box>
+                ))}
+              </Stack>
+            </SectionCard>
 
-            {/* Accuracy Over Time */}
-            <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="subtitle1" fontWeight="700">Accuracy Over Time</Typography>
-                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 0.5, borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary">30 Days v</Typography>
-                  </Box>
-                </Stack>
-                
-                {/* Simulated SVG Line Chart */}
-                <Box sx={{ position: 'relative', height: 120, mb: 1 }}>
-                  <svg viewBox="0 0 400 120" style={{ width: '100%', height: '100%' }} preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M 0 100 Q 20 50, 50 80 T 100 60 T 150 90 T 200 40 T 250 80 T 300 30 T 350 60 T 400 40 L 400 120 L 0 120 Z" fill="url(#lineGrad)" />
-                    <path d="M 0 100 Q 20 50, 50 80 T 100 60 T 150 90 T 200 40 T 250 80 T 300 30 T 350 60 T 400 40" fill="none" stroke="#8B5CF6" strokeWidth="3" />
-                    <circle cx="400" cy="40" r="4" fill="#8B5CF6" />
-                  </svg>
-                  <Box sx={{ position: 'absolute', right: 0, top: 0, bgcolor: '#8B5CF6', px: 1, py: 0.25, borderRadius: 1 }}>
-                    <Typography variant="caption" fontWeight="bold">82%</Typography>
-                  </Box>
+            {/* ACCURACY OVER TIME - SVG Chart */}
+            <SectionCard
+              title="Accuracy Over Time"
+              subtitle="Last 30 days"
+              action={<Box sx={{ bgcolor: 'action.hover', px: 1.5, py: 0.25, borderRadius: 1 }}><Typography variant="caption" color="text.secondary">30 Days ▼</Typography></Box>}
+            >
+              <Box sx={{ position: 'relative', height: 140 }}>
+                <svg viewBox="0 0 400 140" style={{ width: '100%', height: '100%' }} preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="accGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M 0 110 Q 20 70, 50 90 T 100 80 T 150 100 T 200 60 T 250 90 T 300 50 T 350 70 T 400 60 L 400 140 L 0 140 Z" fill="url(#accGrad)" />
+                  <path d="M 0 110 Q 20 70, 50 90 T 100 80 T 150 100 T 200 60 T 250 90 T 300 50 T 350 70 T 400 60" fill="none" stroke="#8B5CF6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="400" cy="60" r="5" fill="#8B5CF6" />
+                </svg>
+                <Box sx={{ position: 'absolute', right: 0, top: 0, bgcolor: '#8B5CF6', px: 1.5, py: 0.5, borderRadius: 1.5 }}>
+                  <Typography variant="caption" fontWeight={700} color="#fff">82%</Typography>
                 </Box>
-                
-                <Stack direction="row" justifyContent="space-between" mt={1}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>Apr 20</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>Apr 27</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 4</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 11</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 18</Typography>
-                </Stack>
-
-              </CardContent>
-            </Card>
-
+              </Box>
+              <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+                {['Apr 20', 'Apr 27', 'May 4', 'May 11', 'May 18'].map((d, i) => (
+                  <Typography key={i} variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>{d}</Typography>
+                ))}
+              </Stack>
+            </SectionCard>
           </Stack>
         </Grid>
       </Grid>
