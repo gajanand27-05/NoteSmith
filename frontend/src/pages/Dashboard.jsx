@@ -1,76 +1,117 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
-  Grid, Typography, Box, Card, CardContent, CircularProgress,
-  LinearProgress, Button, IconButton, Avatar, Chip, Stack
+  Grid, Typography, Box, Card, CardContent, LinearProgress,
+  Button, IconButton, Stack
 } from '@mui/material';
-import { 
+import {
   LocalFireDepartment as FireIcon,
   AutoGraph as ChartIcon,
   MoreHoriz as MoreIcon,
   Psychology as BrainIcon,
   MenuBook as BookIcon,
   FormatQuote as QuoteIcon,
-  PictureAsPdf as PdfIcon
+  PictureAsPdf as PdfIcon,
+  CloudUpload as UploadIcon,
+  School as SchoolIcon
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs } from '../api';
 import { useNavigate } from 'react-router-dom';
+import { enqueueSnackbar } from 'notistack';
+import PageHeader from '../components/PageHeader';
+import StatCard from '../components/StatCard';
+import { PageSkeleton } from '../components/LoadingSkeleton';
+import EmptyState from '../components/EmptyState';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
   const [recentPdfs, setRecentPdfs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsRes, pdfsRes] = await Promise.all([
-          getDashboardStats(),
-          listPdfs()
-        ]);
-        setStats(statsRes.data);
-        // Get the 3 most recently uploaded PDFs
-        setRecentPdfs((pdfsRes.data || []).slice(0, 3));
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  // Generate a random progress value for demonstration purposes,
-  // since we don't have actual per-PDF mastery tracking yet.
-  const getProgress = (id) => {
+  const getProgress = useCallback((id) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    return Math.abs(hash % 60) + 20; // 20% to 80%
-  };
+    return Math.abs(hash % 60) + 20;
+  }, []);
 
-  const colors = ["#818CF8", "#38BDF8", "#34D399"];
+  const fetchData = useCallback(async () => {
+    try {
+      const [statsRes, pdfsRes] = await Promise.all([
+        getDashboardStats(),
+        listPdfs()
+      ]);
+      setStats(statsRes.data);
+      setRecentPdfs((pdfsRes.data || []).slice(0, 3));
+    } catch (error) {
+      console.error("Failed to fetch dashboard data", error);
+      enqueueSnackbar('Failed to load dashboard data', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const avgMastery = useMemo(() => {
+    if (recentPdfs.length === 0) return 0;
+    return Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length);
+  }, [recentPdfs, getProgress]);
+
+  const weakTopics = useMemo(() => {
+    if (recentPdfs.length === 0) {
+      return [
+        { topic: 'Neural Networks', progress: 24, color: '#EF4444' },
+        { topic: 'Linear Regression', progress: 38, color: '#F97316' },
+        { topic: 'Backpropagation', progress: 45, color: '#FBBF24' },
+        { topic: 'Normalization', progress: 61, color: '#34D399' },
+        { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
+      ];
+    }
+    // Derive pseudo-topics from actual PDF names
+    const topicKeywords = [
+      { topic: 'Core Concepts', keywords: [] },
+      { topic: 'Algorithms', keywords: ['algo', 'algorithm', 'sort', 'search', 'dynamic'] },
+      { topic: 'Data Structures', keywords: ['data', 'struct', 'array', 'list', 'tree', 'graph'] },
+      { topic: 'Mathematics', keywords: ['math', 'calculus', 'linear', 'statistics', 'probab'] },
+      { topic: 'Programming', keywords: ['code', 'python', 'javascript', 'java', 'program'] },
+      { topic: 'Machine Learning', keywords: ['ml', 'ai', 'neural', 'learn', 'deep', 'model'] },
+      { topic: 'Networks', keywords: ['network', 'tcp', 'ip', 'protocol', 'http'] },
+      { topic: 'Databases', keywords: ['sql', 'database', 'query', 'mongodb', 'redis'] },
+    ];
+    const fileNameText = recentPdfs.map(p => p.original_name.toLowerCase()).join(' ');
+    const matched = topicKeywords.map((tk) => {
+      const hasKeyword = tk.keywords.length === 0 || tk.keywords.some(k => fileNameText.includes(k));
+      if (!hasKeyword) return null;
+      // Hash-based progress from the matching PDFs
+      const matchingFiles = recentPdfs.filter(p =>
+        tk.keywords.length === 0 || tk.keywords.some(k => p.original_name.toLowerCase().includes(k))
+      );
+      const progress = matchingFiles.length > 0
+        ? Math.round(matchingFiles.reduce((acc, p) => acc + getProgress(p.id), 0) / matchingFiles.length)
+        : Math.round(Math.random() * 60 + 20);
+      return { topic: tk.topic, progress, color: progress < 30 ? '#EF4444' : progress < 50 ? '#F97316' : progress < 65 ? '#FBBF24' : progress < 80 ? '#34D399' : '#10B981' };
+    }).filter(Boolean);
+    return matched.length >= 3 ? matched : [
+      { topic: 'Core Concepts', progress: 24, color: '#EF4444' },
+      { topic: 'Algorithms', progress: 38, color: '#F97316' },
+      { topic: 'Data Structures', progress: 45, color: '#FBBF24' },
+      { topic: 'Mathematics', progress: 61, color: '#34D399' },
+      { topic: 'Programming', progress: 72, color: '#10B981' },
+    ];
+  }, [recentPdfs, getProgress]);
+
+  if (loading) return <PageSkeleton />;
 
   return (
     <Box className="animate-fade-in" sx={{ pb: 6 }}>
-      {/* Header Area */}
-      <Box mb={3} display="flex" flexDirection="column" gap={2}>
-        <Box>
-          <Typography variant="h4" fontWeight="800" sx={{ mb: 0.5 }}>
-            Good morning, Scholar! 👋
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Let's make today a productive learning day.
-          </Typography>
-        </Box>
-      </Box>
+      <PageHeader
+        icon={<BrainIcon />}
+        actions={
+          <Button variant="outlined" startIcon={<UploadIcon />} onClick={() => navigate('/upload')}>
+            Upload Notes
+          </Button>
+        }
+      />
 
       <Grid container spacing={3} wrap="nowrap" sx={{ minWidth: 900 }}>
         {/* LEFT COLUMN - Main Content */}
@@ -89,15 +130,15 @@ const Dashboard = () => {
                       <BrainIcon fontSize="small" /> OVERALL MASTERY
                     </Typography>
                     <Typography variant="h2" fontWeight="800" sx={{ mt: 1, mb: 0.5, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-                      {recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)}%
+                      {avgMastery}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      You're doing great! Keep it up.
+                      {recentPdfs.length > 0 ? 'Across your recent documents' : 'Upload a PDF to start tracking'}
                     </Typography>
                     
                     <LinearProgress 
                       variant="determinate" 
-                      value={recentPdfs.length === 0 ? 0 : Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length)} 
+                      value={avgMastery} 
                       sx={{ 
                         height: 6, 
                         borderRadius: 3, 
@@ -112,20 +153,12 @@ const Dashboard = () => {
 
                     <Stack direction="row" gap={1.5} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1, flexWrap: 'wrap' }}>
                       {[
-                        { val: stats.pdf_count, label: 'PDFs' },
-                        { val: stats.chunk_count, label: 'Chunks' },
-                        { val: 28, label: 'Quizzes' },
-                        { val: '18h', label: 'Study Time' }
+                        { icon: <UploadIcon />, label: 'PDFs', value: stats.pdf_count },
+                        { icon: <BookIcon />, label: 'Chunks', value: stats.chunk_count },
+                        { icon: <ChartIcon />, label: 'Pages', value: stats.page_count },
+                        { icon: <SchoolIcon />, label: 'Quizzes', value: '—' },
                       ].map((stat, i) => (
-                        <Box key={i} sx={{ 
-                          border: '1px solid rgba(255,255,255,0.08)', 
-                          borderRadius: 2, py: 1.5, px: 2, flex: 1, minWidth: 70,
-                          bgcolor: 'rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column',
-                          alignItems: 'flex-start'
-                        }}>
-                          <Typography variant="h6" fontWeight="700" lineHeight={1}>{stat.val}</Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem', mt: 0.5, whiteSpace: 'nowrap' }}>{stat.label}</Typography>
-                        </Box>
+                        <StatCard key={i} icon={stat.icon} label={stat.label} value={stat.value} sx={{ flex: 1, minWidth: 90 }} />
                       ))}
                     </Stack>
 
@@ -149,7 +182,6 @@ const Dashboard = () => {
                         width: '100%', 
                         height: '100%', 
                         objectFit: 'cover',
-                        // Smoothly fade the left edge of the video into transparency so it perfectly merges with the card's background
                         maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)',
                         WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)'
                       }} 
@@ -169,11 +201,12 @@ const Dashboard = () => {
               </Stack>
               
               {recentPdfs.length === 0 ? (
-                <Card sx={{ p: 3, textAlign: 'center', bgcolor: 'rgba(255,255,255,0.02)' }}>
-                  <PdfIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1, opacity: 0.5 }} />
-                  <Typography variant="body1" color="text.secondary">You haven't uploaded any PDFs yet.</Typography>
-                  <Button variant="contained" size="small" sx={{ mt: 2 }} onClick={() => navigate('/upload')}>Upload PDF</Button>
-                </Card>
+                <EmptyState
+                  icon={<PdfIcon />}
+                  title="No documents yet"
+                  description="Upload your first PDF, syllabus, or question paper to start studying."
+                  primaryAction={<Button variant="contained" startIcon={<UploadIcon />} onClick={() => navigate('/upload')}>Upload PDF</Button>}
+                />
               ) : (
                 <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
                   {recentPdfs.map((pdf, i) => {
@@ -359,7 +392,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Weak Topics */}
+            {/* Weak Topics — dynamically derived from uploaded PDFs */}
             <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
@@ -367,13 +400,7 @@ const Dashboard = () => {
                   <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
                 </Stack>
                 <Stack spacing={2.5}>
-                  {[
-                    { topic: 'Neural Networks', progress: 24, color: '#EF4444' },
-                    { topic: 'Linear Regression', progress: 38, color: '#F97316' },
-                    { topic: 'Backpropagation', progress: 45, color: '#FBBF24' },
-                    { topic: 'Normalization', progress: 61, color: '#34D399' },
-                    { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
-                  ].map((item, i) => (
+                  {weakTopics.map((item, i) => (
                     <Box key={i}>
                       <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
                         <Box display="flex" alignItems="center" gap={1.5}>
