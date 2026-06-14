@@ -57,47 +57,22 @@ const Dashboard = () => {
     return Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length);
   }, [recentPdfs, getProgress]);
 
+  // Weak Topics derived from actual uploaded PDFs — each PDF becomes a topic
+  // with its real name and hash-based progress (placeholder until per-doc mastery exists)
   const weakTopics = useMemo(() => {
     if (recentPdfs.length === 0) {
-      return [
-        { topic: 'Neural Networks', progress: 24, color: '#EF4444' },
-        { topic: 'Linear Regression', progress: 38, color: '#F97316' },
-        { topic: 'Backpropagation', progress: 45, color: '#FBBF24' },
-        { topic: 'Normalization', progress: 61, color: '#34D399' },
-        { topic: 'Gradient Descent', progress: 72, color: '#10B981' },
-      ];
+      return [];
     }
-    // Derive pseudo-topics from actual PDF names
-    const topicKeywords = [
-      { topic: 'Core Concepts', keywords: [] },
-      { topic: 'Algorithms', keywords: ['algo', 'algorithm', 'sort', 'search', 'dynamic'] },
-      { topic: 'Data Structures', keywords: ['data', 'struct', 'array', 'list', 'tree', 'graph'] },
-      { topic: 'Mathematics', keywords: ['math', 'calculus', 'linear', 'statistics', 'probab'] },
-      { topic: 'Programming', keywords: ['code', 'python', 'javascript', 'java', 'program'] },
-      { topic: 'Machine Learning', keywords: ['ml', 'ai', 'neural', 'learn', 'deep', 'model'] },
-      { topic: 'Networks', keywords: ['network', 'tcp', 'ip', 'protocol', 'http'] },
-      { topic: 'Databases', keywords: ['sql', 'database', 'query', 'mongodb', 'redis'] },
-    ];
-    const fileNameText = recentPdfs.map(p => p.original_name.toLowerCase()).join(' ');
-    const matched = topicKeywords.map((tk) => {
-      const hasKeyword = tk.keywords.length === 0 || tk.keywords.some(k => fileNameText.includes(k));
-      if (!hasKeyword) return null;
-      // Hash-based progress from the matching PDFs
-      const matchingFiles = recentPdfs.filter(p =>
-        tk.keywords.length === 0 || tk.keywords.some(k => p.original_name.toLowerCase().includes(k))
-      );
-      const progress = matchingFiles.length > 0
-        ? Math.round(matchingFiles.reduce((acc, p) => acc + getProgress(p.id), 0) / matchingFiles.length)
-        : Math.round(Math.random() * 60 + 20);
-      return { topic: tk.topic, progress, color: progress < 30 ? '#EF4444' : progress < 50 ? '#F97316' : progress < 65 ? '#FBBF24' : progress < 80 ? '#34D399' : '#10B981' };
-    }).filter(Boolean);
-    return matched.length >= 3 ? matched : [
-      { topic: 'Core Concepts', progress: 24, color: '#EF4444' },
-      { topic: 'Algorithms', progress: 38, color: '#F97316' },
-      { topic: 'Data Structures', progress: 45, color: '#FBBF24' },
-      { topic: 'Mathematics', progress: 61, color: '#34D399' },
-      { topic: 'Programming', progress: 72, color: '#10B981' },
-    ];
+    return recentPdfs.map((pdf) => {
+      const progress = getProgress(pdf.id);
+      const topicName = pdf.original_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+      return {
+        topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
+        progress,
+        color: progress < 30 ? '#EF4444' : progress < 50 ? '#F97316' : progress < 65 ? '#FBBF24' : progress < 80 ? '#34D399' : '#10B981',
+        pdfId: pdf.id,
+      };
+    }).sort((a, b) => a.progress - b.progress);
   }, [recentPdfs, getProgress]);
 
   if (loading) return <PageSkeleton />;
@@ -392,37 +367,39 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Weak Topics — dynamically derived from uploaded PDFs */}
-            <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="subtitle1" fontWeight="700">Weak Topics</Typography>
-                  <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
-                </Stack>
-                <Stack spacing={2.5}>
-                  {weakTopics.map((item, i) => (
-                    <Box key={i}>
-                      <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
-                        <Box display="flex" alignItems="center" gap={1.5}>
-                          <ChartIcon sx={{ fontSize: 16, color: item.color }} />
-                          <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
+            {/* Weak Topics — each uploaded PDF is a topic with its real progress */}
+            {weakTopics.length > 0 && (
+              <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+                    <Typography variant="subtitle1" fontWeight="700">Documents by Mastery</Typography>
+                    <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
+                  </Stack>
+                  <Stack spacing={2.5}>
+                    {weakTopics.map((item, i) => (
+                      <Box key={item.pdfId || i}>
+                        <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
+                          <Box display="flex" alignItems="center" gap={1.5}>
+                            <ChartIcon sx={{ fontSize: 16, color: item.color }} />
+                            <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
                         </Box>
-                        <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={item.progress} 
+                          sx={{ 
+                            height: 4, borderRadius: 2, 
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
+                          }} 
+                        />
                       </Box>
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={item.progress} 
-                        sx={{ 
-                          height: 4, borderRadius: 2, 
-                          backgroundColor: 'rgba(255,255,255,0.05)',
-                          '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
-                        }} 
-                      />
-                    </Box>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Accuracy Over Time */}
             <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
