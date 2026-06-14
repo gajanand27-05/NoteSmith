@@ -139,6 +139,14 @@ const Dashboard = () => {
                     position: 'absolute', right: '-8%', top: '50%', transform: 'translateY(-50%)',
                     width: '450px', height: '450px', zIndex: 0, display: 'flex', justifyContent: 'center', alignItems: 'center'
                   }}>
+                    {/* Subtle purple aura behind the video to tie it into the theme */}
+                    <Box sx={{
+                      position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                      width: '250px', height: '250px',
+                      background: 'radial-gradient(circle, rgba(168,85,247,0.15) 0%, rgba(168,85,247,0) 70%)',
+                      zIndex: -1, pointerEvents: 'none'
+                    }} />
+                    
                     <video 
                       autoPlay 
                       loop 
@@ -148,8 +156,10 @@ const Dashboard = () => {
                       style={{ 
                         width: '100%', 
                         height: '100%', 
-                        objectFit: 'contain',
-                        mixBlendMode: 'screen'
+                        objectFit: 'cover',
+                        mixBlendMode: 'screen',
+                        maskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)',
+                        WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 70%)'
                       }} 
                     />
                   </Box>
