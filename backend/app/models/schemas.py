@@ -178,3 +178,36 @@ class PaperAnalysisResponse(BaseModel):
     topics: list[TopicFrequency]
     predicted: list[PredictedQuestion]
     target_year: int
+
+
+# ─── Mastery Tracking ────────────────────────────────────────────────────────
+
+EVENT_TYPES = Literal["quiz_attempt", "flashcard_review", "qa_asked", "study_session"]
+
+
+class MasteryEventRequest(BaseModel):
+    pdf_id: str
+    event_type: EVENT_TYPES
+    correct: bool | None = None
+    score: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class MasteryEventResponse(BaseModel):
+    id: str
+    pdf_id: str
+    event_type: str
+    correct: int | None = None
+    score: float
+    created_at: str
+
+
+class DocMastery(BaseModel):
+    pdf_id: str
+    pdf_name: str
+    mastery_score: float
+    total_events: int
+    breakdown: dict[str, int] = {}  # event_type → count
+
+
+class MasterySummaryResponse(BaseModel):
+    documents: list[DocMastery]

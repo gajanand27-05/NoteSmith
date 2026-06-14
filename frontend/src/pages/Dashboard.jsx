@@ -14,7 +14,7 @@ import {
   CloudUpload as UploadIcon,
   School as SchoolIcon
 } from '@mui/icons-material';
-import { getDashboardStats, listPdfs } from '../api';
+import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
 import PageHeader from '../components/PageHeader';
@@ -26,22 +26,25 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
   const [recentPdfs, setRecentPdfs] = useState([]);
+  const [masteryMap, setMasteryMap] = useState({});
   const [loading, setLoading] = useState(true);
-
-  const getProgress = useCallback((id) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    return Math.abs(hash % 60) + 20;
-  }, []);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, pdfsRes] = await Promise.all([
+      const [statsRes, pdfsRes, masteryRes] = await Promise.all([
         getDashboardStats(),
-        listPdfs()
+        listPdfs(),
+        getMasterySummary().catch(() => ({ data: [] })),
       ]);
       setStats(statsRes.data);
-      setRecentPdfs((pdfsRes.data || []).slice(0, 3));
+      const pdfs = pdfsRes.data || [];
+      setRecentPdfs(pdfs.slice(0, 3));
+      // Build mastery lookup: pdf_id → mastery_score
+      const mm = {};
+      (masteryRes.data || []).forEach((m) => { mm[m.pdf_id] = m; });
+      // For PDFs without any mastery events yet, set score to 0
+      pdfs.forEach((p) => { if (!mm[p.id]) mm[p.id] = { pdf_id: p.id, pdf_name: p.original_name, mastery_score: 0, total_events: 0 }; });
+      setMasteryMap(mm);
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
       enqueueSnackbar('Failed to load dashboard data', { variant: 'error' });
@@ -53,27 +56,27 @@ const Dashboard = () => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const avgMastery = useMemo(() => {
-    if (recentPdfs.length === 0) return 0;
-    return Math.round(recentPdfs.reduce((acc, pdf) => acc + getProgress(pdf.id), 0) / recentPdfs.length);
-  }, [recentPdfs, getProgress]);
+    const scores = recentPdfs.map((p) => masteryMap[p.id]?.mastery_score ?? 0);
+    if (scores.length === 0) return 0;
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  }, [recentPdfs, masteryMap]);
 
-  // Weak Topics derived from actual uploaded PDFs — each PDF becomes a topic
-  // with its real name and hash-based progress (placeholder until per-doc mastery exists)
   const weakTopics = useMemo(() => {
-    if (recentPdfs.length === 0) {
-      return [];
-    }
-    return recentPdfs.map((pdf) => {
-      const progress = getProgress(pdf.id);
-      const topicName = pdf.original_name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-      return {
-        topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
-        progress,
-        color: progress < 30 ? '#EF4444' : progress < 50 ? '#F97316' : progress < 65 ? '#FBBF24' : progress < 80 ? '#34D399' : '#10B981',
-        pdfId: pdf.id,
-      };
-    }).sort((a, b) => a.progress - b.progress);
-  }, [recentPdfs, getProgress]);
+    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
+    if (entries.length === 0) return [];
+    return entries
+      .map((m) => {
+        const score = m.mastery_score ?? 0;
+        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        return {
+          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
+          progress: score,
+          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
+          pdfId: m.pdf_id,
+        };
+      })
+      .sort((a, b) => a.progress - b.progress);
+  }, [masteryMap, recentPdfs]);
 
   if (loading) return <PageSkeleton />;
 
@@ -185,7 +188,8 @@ const Dashboard = () => {
               ) : (
                 <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
                   {recentPdfs.map((pdf, i) => {
-                    const progress = getProgress(pdf.id);
+                    const mastery = masteryMap[pdf.id];
+                    const progress = mastery?.mastery_score ?? 0;
                     const colorThemes = [
                       { main: '#8B5CF6', bg: 'rgba(139,92,246,0.1)' },
                       { main: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },

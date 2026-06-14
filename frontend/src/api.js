@@ -46,4 +46,15 @@ export const analyzePapers = (pdfIds, targetYear = 2024) =>
 export const getDashboardStats = () => api.get('/dashboard/overall');
 export const getStudyLoopStatus = () => api.get('/loop/status');
 
+// Mastery tracking
+export const recordMasteryEvent = (pdfId, eventType, correct = null, score = null) =>
+  api.post('/mastery/event', { pdf_id: pdfId, event_type: eventType, correct, score });
+export const getPdfMastery = (pdfId) => api.get(`/mastery/${pdfId}`);
+export const getMasterySummary = () => api.get('/mastery/summary/all');
+export const getWeakTopics = () => api.get('/mastery/weak/all');
+export const submitQuizAnswer = (pdfId, questionNumber, correct) =>
+  api.post('/quiz/submit', { pdf_id: pdfId, question_number: questionNumber, correct });
+export const reviewFlashcard = (pdfId, cardNumber, correct) =>
+  api.post('/flashcards/review', { pdf_id: pdfId, card_number: cardNumber, correct });
+
 export default api;

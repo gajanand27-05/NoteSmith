@@ -1,8 +1,16 @@
+from pydantic import BaseModel
+
 from fastapi import APIRouter, HTTPException
 
 from app.db import database
 from app.models.schemas import QuizRequest, QuizResponse
 from app.services import quiz_gen
+
+
+class QuizSubmitRequest(BaseModel):
+    pdf_id: str
+    question_number: int
+    correct: bool
 
 router = APIRouter()
 
@@ -27,3 +35,17 @@ def generate(req: QuizRequest) -> QuizResponse:
         questions=questions,
         raw_output=raw if req.include_raw else "",
     )
+
+
+@router.post("/submit")
+def submit_quiz_answer(req: QuizSubmitRequest) -> dict:
+    if not database.get_pdf(req.pdf_id):
+        raise HTTPException(404, "PDF not found")
+    score = 1.0 if req.correct else 0.0
+    event = database.create_mastery_event(
+        pdf_id=req.pdf_id,
+        event_type="quiz_attempt",
+        correct=1 if req.correct else 0,
+        score=score,
+    )
+    return {"status": "recorded", "event": event}

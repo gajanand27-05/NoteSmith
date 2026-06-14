@@ -42,6 +42,66 @@ def create_pdf(
     created_at = datetime.utcnow().isoformat()
     with _connect() as conn:
         conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mastery_events (
+                id TEXT PRIMARY KEY,
+                pdf_id TEXT NOT NULL REFERENCES pdfs(id) ON DELETE CASCADE,
+                event_type TEXT NOT NULL,
+                correct INTEGER DEFAULT NULL,
+                score REAL DEFAULT 0.0,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        conn.commit()
+
+def create_mastery_event(
+    pdf_id: str,
+    event_type: str,
+    correct: int | None = None,
+    score: float = 0.0,
+) -> dict:
+    event_id = str(uuid.uuid4())
+    created_at = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO mastery_events (id, pdf_id, event_type, correct, score, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (event_id, pdf_id, event_type, correct, score, created_at),
+        )
+        conn.commit()
+    return {
+        "id": event_id,
+        "pdf_id": pdf_id,
+        "event_type": event_type,
+        "correct": correct,
+        "score": score,
+        "created_at": created_at,
+    }
+
+def get_mastery_events(pdf_id: str, days: int = 30) -> list[dict]:
+    cutoff = datetime.utcnow().isoformat()  # we'll filter in Python
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT * FROM mastery_events WHERE pdf_id = ? ORDER BY created_at DESC",
+            (pdf_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+def get_all_mastery_summary() -> list[dict]:
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT pdf_id, event_type, COUNT(*) as total, AVG(COALESCE(score, 0)) as avg_score "
+            "FROM mastery_events GROUP BY pdf_id, event_type ORDER BY pdf_id"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+def delete_mastery_events(pdf_id: str) -> None:
+    with _connect() as conn:
+        conn.execute("DELETE FROM mastery_events WHERE pdf_id = ?", (pdf_id,))
+        conn.commit()
+
+        conn.execute(
             "INSERT INTO pdfs (id, original_name, stored_path, page_count, created_at) "
             "VALUES (?, ?, ?, ?, ?)",
             (pdf_id, original_name, stored_path, page_count, created_at),
@@ -80,6 +140,7 @@ def delete_pdf(pdf_id: str) -> dict | None:
     if not row:
         return None
     with _connect() as conn:
+        conn.execute("DELETE FROM mastery_events WHERE pdf_id = ?", (pdf_id,))
         conn.execute("DELETE FROM pdfs WHERE id = ?", (pdf_id,))
         conn.commit()
     return row
