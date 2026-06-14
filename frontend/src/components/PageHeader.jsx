@@ -2,19 +2,7 @@ import React from 'react';
 import { Box, Typography, Stack, Breadcrumbs, Link, alpha, useTheme } from '@mui/material';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { NavigateNext as NavigateNextIcon, Home as HomeIcon } from '@mui/icons-material';
-
-const titleByPath = {
-  '/': 'Dashboard',
-  '/upload': 'Upload Notes',
-  '/summarize': 'Summarize',
-  '/qa': 'Q&A',
-  '/questions': 'Generate Questions',
-  '/flashcards': 'Flashcards',
-  '/quiz': 'Quiz',
-  '/study-loop': 'Study Loop',
-  '/tutor': 'AI Tutor',
-  '/paper-analyzer': 'Paper Analyzer',
-};
+import { titleByPath } from './navMeta';
 
 const subtitleByPath = {
   '/': 'Your learning at a glance.',
