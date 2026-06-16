@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import ollama
@@ -17,6 +18,7 @@ class LLMClient:
         self.chat_model = chat_model or settings.ollama_chat_model
         self.embed_model = embed_model or settings.ollama_embed_model
         self._client = ollama.Client(host=self.base_url)
+        self._async_client = ollama.AsyncClient(host=self.base_url)
 
         self.gemini_key = settings.gemini_api_key
         self.gemini_chat_model = settings.gemini_chat_model
@@ -89,6 +91,28 @@ class LLMClient:
         if text is None and isinstance(response, dict):
             text = response.get("response")
         return (text or "").strip()
+
+    async def chat_stream(self, messages: list[dict[str, str]]) -> AsyncGenerator[str, None]:
+        if self._cloud_client:
+            prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
+            response = self._cloud_client.models.generate_content_stream(
+                model=self._cloud_model,
+                contents=prompt,
+            )
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+            return
+
+        stream = await self._async_client.chat(
+            model=self.chat_model,
+            messages=messages,
+            stream=True,
+        )
+        async for chunk in stream:
+            content = chunk.get("message", {}).get("content", "")
+            if content:
+                yield content
 
     def chat_text(self, messages: list[dict[str, str]]) -> str:
         if self._cloud_client:

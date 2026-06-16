@@ -1,4 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi.responses import StreamingResponse
 
 from app.core import rag_pipeline
 from app.db import database
@@ -41,4 +42,22 @@ def ask(req: QARequest, background_tasks: BackgroundTasks) -> QAResponse:
         question=req.question,
         answer=result.get("answer", ""),
         sources=sources,
+    )
+
+
+@router.post("/stream")
+async def ask_stream(req: QARequest, background_tasks: BackgroundTasks):
+    if not database.get_pdf(req.pdf_id):
+        raise HTTPException(404, "PDF not found")
+
+    background_tasks.add_task(record_qa_event, req.pdf_id, req.topic_id)
+
+    return StreamingResponse(
+        rag_pipeline.answer_question_stream(req.pdf_id, req.question, req.top_k),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )

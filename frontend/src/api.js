@@ -40,6 +40,52 @@ export const getSummary = (pdfId, length = 'medium') =>
 export const askQuestion = (pdfId, question) => 
   api.post('/qa', { pdf_id: pdfId, question });
 
+export const askQuestionStream = async (pdfId, question, { onToken, onSources, onDone, onError }) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/qa/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pdf_id: pdfId, question }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Q&A failed' }));
+      onError(err.detail || 'Q&A failed');
+      return;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n');
+      buffer = parts.pop() || '';
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const data = JSON.parse(line.slice(6));
+          if (data.type === 'token') onToken(data.token);
+          else if (data.type === 'sources') onSources(data.sources || []);
+          else if (data.type === 'done') onDone();
+        } catch { /* skip malformed */ }
+      }
+    }
+    // Process remaining buffer
+    if (buffer.startsWith('data: ')) {
+      try {
+        const data = JSON.parse(buffer.slice(6));
+        if (data.type === 'token') onToken(data.token);
+        else if (data.type === 'sources') onSources(data.sources || []);
+        else if (data.type === 'done') onDone();
+      } catch { /* skip */ }
+    }
+  } catch (e) {
+    onError(e.message);
+  }
+};
+
 export const generateQuestions = (pdfId, marks, count = 5) => 
   api.post('/questions/generate', { pdf_id: pdfId, marks, count });
 
