@@ -210,6 +210,7 @@ class DocMastery(BaseModel):
     pdf_id: str
     pdf_name: str
     mastery_score: float
+    trend: float = 0.0
     total_events: int
     breakdown: dict[str, int] = {}
     topic_id: str | None = None

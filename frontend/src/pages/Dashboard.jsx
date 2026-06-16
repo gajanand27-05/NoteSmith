@@ -15,6 +15,9 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics, getRecommendations } from '../api';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
 import PageHeader from '../components/PageHeader';
@@ -66,12 +69,32 @@ const Dashboard = () => {
     return mm;
   }, [masteryList, recentPdfs]);
 
+  const TrendBadge = ({ trend, size = 'small' }) => {
+    const rounded = Math.abs(trend) < 0.1 ? 0 : Math.round(trend * 10) / 10;
+    if (rounded === 0) return null;
+    const color = trend > 0 ? '#10B981' : '#EF4444';
+    const icon = trend > 0
+      ? <TrendingUpIcon sx={{ fontSize: size === 'small' ? 14 : 18 }} />
+      : <TrendingDownIcon sx={{ fontSize: size === 'small' ? 14 : 18 }} />;
+    return (
+      <Typography variant="caption" sx={{ color, display: 'inline-flex', alignItems: 'center', gap: 0.25, fontWeight: 700 }}>
+        {icon} {rounded > 0 ? '+' : ''}{rounded}%
+      </Typography>
+    );
+  };
+
   const overallMastery = useMemo(() => {
     if (stats && stats.mastery != null) return Math.round(stats.mastery * 100);
     const scores = Object.values(masteryMap).map((m) => m.mastery_score ?? 0).filter(Boolean);
     if (scores.length === 0) return 0;
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   }, [stats, masteryMap]);
+
+  const overallTrend = useMemo(() => {
+    const trends = Object.values(masteryMap).filter((m) => m.trend != null && m.total_events > 0).map((m) => m.trend);
+    if (trends.length === 0) return 0;
+    return Math.round((trends.reduce((a, b) => a + b, 0) / trends.length) * 10) / 10;
+  }, [masteryMap]);
 
   const accuracyScore = useMemo(() => {
     const scores = Object.values(masteryMap).filter((m) => m.total_events > 0).map((m) => m.mastery_score ?? 0);
@@ -104,6 +127,7 @@ const Dashboard = () => {
         return {
           topic: topicName.length > 35 ? topicName.slice(0, 32) + '...' : topicName,
           progress: score,
+          trend: m.trend ?? 0,
           color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
           pdfId: m.pdf_id,
         };
@@ -112,31 +136,22 @@ const Dashboard = () => {
   }, [masteryMap, recentPdfs]);
 
   const displayWeakTopics = useMemo(() => {
+    const mapFn = (m) => {
+      const score = m.mastery_score ?? 0;
+      const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+      return {
+        topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
+        progress: score,
+        trend: m.trend ?? 0,
+        color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
+        pdfId: m.pdf_id,
+      };
+    };
     if (weakTopics.length > 0) {
-      return weakTopics.slice(0, 5).map((m) => {
-        const score = m.mastery_score ?? 0;
-        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-        return {
-          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
-          progress: score,
-          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
-          pdfId: m.pdf_id,
-        };
-      });
+      return weakTopics.slice(0, 5).map(mapFn);
     }
     const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
-    return [...entries]
-      .map((m) => {
-        const score = m.mastery_score ?? 0;
-        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-        return {
-          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
-          progress: score,
-          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
-          pdfId: m.pdf_id,
-        };
-      })
-      .sort((a, b) => a.progress - b.progress);
+    return [...entries].map(mapFn).sort((a, b) => a.progress - b.progress);
   }, [weakTopics, masteryMap, recentPdfs]);
 
   const maxStreak = useMemo(() => {
@@ -185,9 +200,12 @@ const Dashboard = () => {
                     <Typography variant="overline" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main', fontWeight: 700, lineHeight: 1 }}>
                       <BrainIcon fontSize="small" /> OVERALL MASTERY
                     </Typography>
-                    <Typography variant="h2" fontWeight="800" sx={{ mt: 1, mb: 0.5, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-                      {overallMastery}%
-                    </Typography>
+                    <Box sx={{ mt: 1, mb: 0.5, display: 'flex', alignItems: 'baseline', gap: 1.5 }}>
+                      <Typography variant="h2" fontWeight="800" sx={{ fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
+                        {overallMastery}%
+                      </Typography>
+                      <TrendBadge trend={overallTrend} size="large" />
+                    </Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                       {recentPdfs.length > 0 ? 'Across all your documents' : 'Upload a PDF to start tracking'}
                     </Typography>
@@ -286,9 +304,12 @@ const Dashboard = () => {
                               {pdf.original_name.replace('.pdf', '')}
                             </Typography>
                             <Box sx={{ mt: 'auto' }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem' }}>
-                                {progress}% Mastered
-                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                                  {progress}% Mastered
+                                </Typography>
+                                <TrendBadge trend={mastery?.trend ?? 0} />
+                              </Box>
                               <LinearProgress variant="determinate" value={progress} sx={{ height: 4, borderRadius: 2, mb: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: theme.main } }} />
                               <Grid container spacing={1}>
                                 <Grid item xs={4.5}>
@@ -457,7 +478,10 @@ const Dashboard = () => {
                             <ChartIcon sx={{ fontSize: 16, color: item.color }} />
                             <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
                           </Box>
-                          <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                            <TrendBadge trend={item.trend} />
+                          </Box>
                         </Box>
                         <LinearProgress variant="determinate" value={item.progress} sx={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 } }} />
                       </Box>
@@ -477,7 +501,10 @@ const Dashboard = () => {
                       <Box key={item.pdfId || i}>
                         <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
                           <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
-                          <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                            <TrendBadge trend={item.trend} />
+                          </Box>
                         </Box>
                         <LinearProgress variant="determinate" value={item.progress} sx={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 } }} />
                       </Box>
@@ -496,7 +523,7 @@ const Dashboard = () => {
                 </Stack>
                 <Grid container spacing={2}>
                   {[
-                    { label: 'Mastery Score', value: `${healthStats.masteryScore}%`, color: '#8B5CF6', icon: <BrainIcon /> },
+                    { label: 'Mastery Score', value: `${healthStats.masteryScore}%`, color: '#8B5CF6', icon: <BrainIcon />, trend: overallTrend },
                     { label: 'Accuracy', value: `${healthStats.accuracy}%`, color: '#10B981', icon: <ChartIcon /> },
                     { label: 'Study Streak', value: `${healthStats.studyStreak} day${healthStats.studyStreak !== 1 ? 's' : ''}`, color: '#F97316', icon: <FireIcon /> },
                     { label: 'Learning Risk', value: healthStats.learningRisk, color: '#EF4444', icon: <SchoolIcon /> },
@@ -504,7 +531,10 @@ const Dashboard = () => {
                     <Grid item xs={6} key={i}>
                       <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, p: 1.5, textAlign: 'center' }}>
                         <Box sx={{ color: h.color, mb: 0.5, display: 'flex', justifyContent: 'center' }}>{h.icon}</Box>
-                        <Typography variant="h5" fontWeight="800" color={h.color}>{h.value}</Typography>
+                        <Typography variant="h5" fontWeight="800" color={h.color}>
+                          {h.value}
+                          {h.trend != null && <TrendBadge trend={h.trend} />}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>{h.label}</Typography>
                       </Box>
                     </Grid>

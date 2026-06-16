@@ -23,6 +23,9 @@ def _time_decay(days_old: int) -> float:
     return 0.2
 
 
+TREND_DAYS = 7
+
+
 def _compute_score(events: list[dict]) -> tuple[float, int, dict]:
     weighted_sum = 0.0
     weight_total = 0.0
@@ -44,6 +47,19 @@ def _compute_score(events: list[dict]) -> tuple[float, int, dict]:
     mastery = round(weighted_sum / weight_total, 4) if weight_total > 0 else 0.0
     scaled = round(mastery * 100)
     return scaled, len(events), breakdown
+
+
+def _compute_trend(events: list[dict]) -> float:
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=TREND_DAYS)
+
+    old_events = [e for e in events if datetime.fromisoformat(e["created_at"]) < cutoff]
+    if not old_events:
+        return 0.0
+
+    old_score, _, _ = _compute_score(old_events)
+    all_score, _, _ = _compute_score(events)
+    return round(all_score - old_score, 1)
 
 
 def _upsert_cached(pdf_id: str, topic_id: str | None, mastery: float, total: int, breakdown: dict) -> None:
@@ -89,7 +105,7 @@ def record_and_recompute(
 def compute_pdf_mastery(pdf_id: str) -> dict:
     pdf = database.get_pdf(pdf_id)
     if not pdf:
-        return {"pdf_id": pdf_id, "pdf_name": "", "mastery_score": 0.0, "total_events": 0, "breakdown": {}}
+        return {"pdf_id": pdf_id, "pdf_name": "", "mastery_score": 0.0, "trend": 0.0, "total_events": 0, "breakdown": {}}
 
     events = database.get_mastery_events(pdf_id)
     if not events:
@@ -97,6 +113,7 @@ def compute_pdf_mastery(pdf_id: str) -> dict:
             "pdf_id": pdf_id,
             "pdf_name": pdf["original_name"],
             "mastery_score": 0.0,
+            "trend": 0.0,
             "total_events": 0,
             "breakdown": {},
             "topic_id": None,
@@ -104,12 +121,27 @@ def compute_pdf_mastery(pdf_id: str) -> dict:
         }
 
     mastery, total, breakdown = _compute_score(events)
+    trend = _compute_trend(events)
     return {
         "pdf_id": pdf_id,
         "pdf_name": pdf["original_name"],
         "mastery_score": mastery,
+        "trend": trend,
         "total_events": total,
         "breakdown": breakdown,
+        "topic_id": None,
+        "topic_name": None,
+    }
+
+
+def _compute_empty_mastery(pdf_id: str, pdf_name: str = "") -> dict:
+    return {
+        "pdf_id": pdf_id,
+        "pdf_name": pdf_name,
+        "mastery_score": 0.0,
+        "trend": 0.0,
+        "total_events": 0,
+        "breakdown": {},
         "topic_id": None,
         "topic_name": None,
     }
@@ -118,14 +150,35 @@ def compute_pdf_mastery(pdf_id: str) -> dict:
 def compute_all_mastery(use_cache: bool = True) -> list[dict]:
     if use_cache:
         cached = database.list_mastery_scores()
-        # Only return top-level scores (no topic_id)
         pdf_cache = [c for c in cached if c.get("topic_id") is None]
-        if pdf_cache:
-            # Enrich with pdf names
-            pdfs = {p["id"]: p["original_name"] for p in database.list_pdfs()}
-            for c in pdf_cache:
-                c["pdf_name"] = pdfs.get(c["pdf_id"], "Unknown")
-            return pdf_cache
+        pdf_map = {p["id"]: p["original_name"] for p in database.list_pdfs()}
+        results = []
+        seen = set()
+        for c in pdf_cache:
+            pid = c["pdf_id"]
+            seen.add(pid)
+            events = database.get_mastery_events(pid)
+            trend = _compute_trend(events) if events else 0.0
+            breakdown = c.get("breakdown", {})
+            if isinstance(breakdown, str):
+                try:
+                    breakdown = json.loads(breakdown)
+                except (json.JSONDecodeError, TypeError):
+                    breakdown = {}
+            results.append({
+                "pdf_id": pid,
+                "pdf_name": pdf_map.get(pid, "Unknown"),
+                "mastery_score": c["mastery"],
+                "trend": trend,
+                "total_events": c.get("total_events", 0),
+                "breakdown": breakdown,
+                "topic_id": None,
+                "topic_name": None,
+            })
+        for pid, name in pdf_map.items():
+            if pid not in seen:
+                results.append(_compute_empty_mastery(pid, name))
+        return results
 
     pdfs = database.list_pdfs()
     results = []
