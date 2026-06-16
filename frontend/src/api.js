@@ -20,6 +20,17 @@ export const uploadPdf = (file) => {
   });
 };
 
+export const uploadPdfWithProgress = (file, onProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post('/pdfs/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => {
+      if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+    },
+  });
+};
+
 export const deletePdf = (pdfId) => api.delete(`/pdfs/${pdfId}`);
 
 export const getSummary = (pdfId, length = 'medium') => 

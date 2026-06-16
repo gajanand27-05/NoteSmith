@@ -17,13 +17,24 @@ import {
 import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics, getRecommendations } from '../api';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
 import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { PageSkeleton } from '../components/LoadingSkeleton';
 import EmptyState from '../components/EmptyState';
+
+const TrendBadge = ({ trend, size = 'small' }) => {
+  const rounded = Math.abs(trend) < 0.1 ? 0 : Math.round(trend * 10) / 10;
+  if (rounded === 0) return null;
+  const color = trend > 0 ? '#10B981' : '#EF4444';
+  const Icon = trend > 0 ? TrendingUpIcon : TrendingDownIcon;
+  return (
+    <Typography variant="caption" sx={{ color, display: 'inline-flex', alignItems: 'center', gap: 0.25, fontWeight: 700 }}>
+      <Icon sx={{ fontSize: size === 'small' ? 14 : 18 }} /> {rounded > 0 ? '+' : ''}{rounded}%
+    </Typography>
+  );
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,20 +79,6 @@ const Dashboard = () => {
     });
     return mm;
   }, [masteryList, recentPdfs]);
-
-  const TrendBadge = ({ trend, size = 'small' }) => {
-    const rounded = Math.abs(trend) < 0.1 ? 0 : Math.round(trend * 10) / 10;
-    if (rounded === 0) return null;
-    const color = trend > 0 ? '#10B981' : '#EF4444';
-    const icon = trend > 0
-      ? <TrendingUpIcon sx={{ fontSize: size === 'small' ? 14 : 18 }} />
-      : <TrendingDownIcon sx={{ fontSize: size === 'small' ? 14 : 18 }} />;
-    return (
-      <Typography variant="caption" sx={{ color, display: 'inline-flex', alignItems: 'center', gap: 0.25, fontWeight: 700 }}>
-        {icon} {rounded > 0 ? '+' : ''}{rounded}%
-      </Typography>
-    );
-  };
 
   const overallMastery = useMemo(() => {
     if (stats && stats.mastery != null) return Math.round(stats.mastery * 100);
