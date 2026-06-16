@@ -32,6 +32,7 @@ class QARequest(BaseModel):
     pdf_id: str
     question: str
     top_k: int = Field(default=5, ge=1, le=20)
+    topic_id: str | None = None
 
 
 class QASource(BaseModel):
@@ -182,22 +183,26 @@ class PaperAnalysisResponse(BaseModel):
 
 # ─── Mastery Tracking ────────────────────────────────────────────────────────
 
-EVENT_TYPES = Literal["quiz_attempt", "flashcard_review", "qa_asked", "study_session"]
+EVENT_TYPES = Literal["QUIZ", "FLASHCARD", "QA", "TUTOR", "STUDY", "PAPER_ANALYZER"]
 
 
 class MasteryEventRequest(BaseModel):
     pdf_id: str
     event_type: EVENT_TYPES
+    topic_id: str | None = None
     correct: bool | None = None
     score: float | None = Field(default=None, ge=0.0, le=1.0)
+    metadata: dict | None = None
 
 
 class MasteryEventResponse(BaseModel):
     id: str
     pdf_id: str
+    topic_id: str | None = None
     event_type: str
     correct: int | None = None
     score: float
+    metadata: dict = {}
     created_at: str
 
 
@@ -206,8 +211,22 @@ class DocMastery(BaseModel):
     pdf_name: str
     mastery_score: float
     total_events: int
-    breakdown: dict[str, int] = {}  # event_type → count
+    breakdown: dict[str, int] = {}
+    topic_id: str | None = None
+    topic_name: str | None = None
 
 
 class MasterySummaryResponse(BaseModel):
     documents: list[DocMastery]
+
+
+class Recommendation(BaseModel):
+    pdf_id: str
+    pdf_name: str
+    topic: str | None = None
+    mastery: float
+    reason: str
+
+
+class RecommendationsResponse(BaseModel):
+    recommendations: list[Recommendation]

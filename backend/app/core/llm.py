@@ -1,7 +1,7 @@
 from typing import Any
 
 import ollama
-from openai import OpenAI
+from google import genai as google_genai
 
 from app.config import settings
 
@@ -17,25 +17,16 @@ class LLMClient:
         self.chat_model = chat_model or settings.ollama_chat_model
         self.embed_model = embed_model or settings.ollama_embed_model
         self._client = ollama.Client(host=self.base_url)
-        
+
         self.gemini_key = settings.gemini_api_key
         self.gemini_chat_model = settings.gemini_chat_model
-        
-        self.openai_key = settings.openai_api_key
-        self.openai_chat_model = settings.openai_chat_model
-        
+
         self._cloud_client = None
         self._cloud_model = None
-        
+
         if self.gemini_key:
-            self._cloud_client = OpenAI(
-                api_key=self.gemini_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            )
+            self._cloud_client = google_genai.Client(api_key=self.gemini_key)
             self._cloud_model = self.gemini_chat_model
-        elif self.openai_key:
-            self._cloud_client = OpenAI(api_key=self.openai_key)
-            self._cloud_model = self.openai_chat_model
 
     def is_available(self) -> bool:
         if self._cloud_client:
@@ -87,12 +78,12 @@ class LLMClient:
 
     def generate_text(self, prompt: str) -> str:
         if self._cloud_client:
-            response = self._cloud_client.chat.completions.create(
+            response = self._cloud_client.models.generate_content(
                 model=self._cloud_model,
-                messages=[{"role": "user", "content": prompt}]
+                contents=prompt,
             )
-            return (response.choices[0].message.content or "").strip()
-            
+            return (response.text or "").strip()
+
         response = self._client.generate(model=self.chat_model, prompt=prompt)
         text = getattr(response, "response", None)
         if text is None and isinstance(response, dict):
@@ -101,11 +92,12 @@ class LLMClient:
 
     def chat_text(self, messages: list[dict[str, str]]) -> str:
         if self._cloud_client:
-            response = self._cloud_client.chat.completions.create(
+            prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
+            response = self._cloud_client.models.generate_content(
                 model=self._cloud_model,
-                messages=messages
+                contents=prompt,
             )
-            return (response.choices[0].message.content or "").strip()
+            return (response.text or "").strip()
 
         response = self._client.chat(model=self.chat_model, messages=messages)
         message = getattr(response, "message", None)

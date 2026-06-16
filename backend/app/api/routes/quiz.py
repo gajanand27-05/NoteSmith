@@ -5,12 +5,14 @@ from fastapi import APIRouter, HTTPException
 from app.db import database
 from app.models.schemas import QuizRequest, QuizResponse
 from app.services import quiz_gen
+from app.services import mastery as mastery_service
 
 
 class QuizSubmitRequest(BaseModel):
     pdf_id: str
     question_number: int
     correct: bool
+    topic_id: str | None = None
 
 router = APIRouter()
 
@@ -42,10 +44,12 @@ def submit_quiz_answer(req: QuizSubmitRequest) -> dict:
     if not database.get_pdf(req.pdf_id):
         raise HTTPException(404, "PDF not found")
     score = 1.0 if req.correct else 0.0
-    event = database.create_mastery_event(
+    event = mastery_service.record_and_recompute(
         pdf_id=req.pdf_id,
-        event_type="quiz_attempt",
+        event_type="QUIZ",
+        topic_id=req.topic_id,
         correct=1 if req.correct else 0,
         score=score,
+        metadata={"question_number": req.question_number},
     )
     return {"status": "recorded", "event": event}

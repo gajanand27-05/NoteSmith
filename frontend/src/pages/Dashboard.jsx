@@ -14,7 +14,7 @@ import {
   CloudUpload as UploadIcon,
   School as SchoolIcon
 } from '@mui/icons-material';
-import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics } from '../api';
+import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics, getRecommendations } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
 import PageHeader from '../components/PageHeader';
@@ -27,14 +27,16 @@ const Dashboard = () => {
   const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
   const [recentPdfs, setRecentPdfs] = useState([]);
   const [masteryMap, setMasteryMap] = useState({});
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, pdfsRes, masteryRes] = await Promise.all([
+      const [statsRes, pdfsRes, masteryRes, recsRes] = await Promise.all([
         getDashboardStats(),
         listPdfs(),
         getMasterySummary().catch(() => ({ data: [] })),
+        getRecommendations().catch(() => ({ data: { recommendations: [] } })),
       ]);
       setStats(statsRes.data);
       const pdfs = pdfsRes.data || [];
@@ -45,6 +47,7 @@ const Dashboard = () => {
       // For PDFs without any mastery events yet, set score to 0
       pdfs.forEach((p) => { if (!mm[p.id]) mm[p.id] = { pdf_id: p.id, pdf_name: p.original_name, mastery_score: 0, total_events: 0 }; });
       setMasteryMap(mm);
+      setRecommendations(recsRes.data?.recommendations || []);
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
       enqueueSnackbar('Failed to load dashboard data', { variant: 'error' });
@@ -61,6 +64,19 @@ const Dashboard = () => {
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   }, [recentPdfs, masteryMap]);
 
+  const healthStats = useMemo(() => {
+    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0);
+    if (entries.length === 0) return { masteryScore: 0, accuracy: 0, studyStreak: 0, atRisk: 0 };
+    const avgMastery = entries.reduce((s, m) => s + (m.mastery_score ?? 0), 0) / entries.length;
+    const atRisk = entries.filter((m) => (m.mastery_score ?? 100) < 50).length;
+    return {
+      masteryScore: Math.round(avgMastery),
+      accuracy: Math.round(entries.reduce((s, m) => s + (m.mastery_score ?? 0), 0) / entries.length),
+      studyStreak: 3,
+      atRisk,
+    };
+  }, [masteryMap]);
+
   const weakTopics = useMemo(() => {
     const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
     if (entries.length === 0) return [];
@@ -76,6 +92,22 @@ const Dashboard = () => {
         };
       })
       .sort((a, b) => a.progress - b.progress);
+  }, [masteryMap, recentPdfs]);
+
+  const documentsByMastery = useMemo(() => {
+    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
+    return [...entries]
+      .map((m) => {
+        const score = m.mastery_score ?? 0;
+        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        return {
+          topic: topicName.length > 35 ? topicName.slice(0, 32) + '...' : topicName,
+          progress: score,
+          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
+          pdfId: m.pdf_id,
+        };
+      })
+      .sort((a, b) => b.progress - a.progress);
   }, [masteryMap, recentPdfs]);
 
   if (loading) return <PageSkeleton />;
@@ -261,56 +293,76 @@ const Dashboard = () => {
               )}
             </Box>
 
-            {/* Recommended Next Steps */}
+            {/* Recommended Next Steps — data-driven from mastery engine */}
             <Box>
               <Typography variant="h6" fontWeight="700" mb={2}>Recommended Next Steps</Typography>
               <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
-                        Focus on 6 weak areas to improve mastery.
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#8B5CF6', borderRadius: 2, px: 3 }}>Review Now</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: -20, bottom: -20, width: 100, height: 100, border: '1px solid rgba(139,92,246,0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Box sx={{ width: 60, height: 60, border: '1px solid rgba(139,92,246,0.5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                         <Box sx={{ width: 20, height: 20, bgcolor: '#8B5CF6', borderRadius: '50%', boxShadow: '0 0 20px #8B5CF6' }} />
+                {recommendations.length > 0 ? (
+                  recommendations.slice(0, 3).map((rec, i) => {
+                    const recPalettes = [
+                      { main: '#8B5CF6', bg: '#1A1525', border: 'rgba(139,92,246,0.2)', accent: '#A78BFA' },
+                      { main: '#3B82F6', bg: '#111827', border: 'rgba(59,130,246,0.2)', accent: '#60A5FA' },
+                      { main: '#10B981', bg: '#064E3B', border: 'rgba(16,185,129,0.2)', accent: '#34D399' },
+                    ];
+                    const p = recPalettes[i % recPalettes.length];
+                    const docName = rec.topic || (rec.pdf_name || '').replace(/\.pdf$/i, '');
+                    return (
+                      <Box key={rec.pdf_id + (rec.topic || '')} sx={{ minWidth: 260, flex: 1 }}>
+                        <Card sx={{ bgcolor: p.bg, border: `1px solid ${p.border}`, height: '100%', position: 'relative', overflow: 'hidden' }}>
+                          <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
+                            <Typography variant="subtitle2" fontWeight="700" color={p.accent} mb={0.5}>
+                              {docName.length > 35 ? docName.slice(0, 32) + '...' : docName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block" mb={1.5} sx={{ minHeight: 32 }}>
+                              {rec.reason || `Mastery: ${Math.round(rec.mastery)}%`}
+                            </Typography>
+                            <Typography variant="h4" fontWeight="800" color={p.accent} mb={1}>
+                              {Math.round(rec.mastery)}%
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.round(rec.mastery)}
+                              sx={{
+                                height: 3, borderRadius: 2, mb: 2,
+                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                '& .MuiLinearProgress-bar': { backgroundColor: p.main }
+                              }}
+                            />
+                            <Button variant="contained" size="small" sx={{ bgcolor: p.main, borderRadius: 2, px: 3 }} onClick={() => navigate(`/study/${rec.pdf_id}`)}>Study Now</Button>
+                          </CardContent>
+                        </Card>
                       </Box>
+                    );
+                  })
+                ) : (
+                  <>
+                    <Box sx={{ minWidth: 260, flex: 1 }}>
+                      <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
+                        <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
+                          <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
+                          <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
+                            Upload a PDF and start studying to get recommendations.
+                          </Typography>
+                          <Button variant="contained" size="small" sx={{ bgcolor: '#8B5CF6', borderRadius: 2, px: 3 }} onClick={() => navigate('/upload')}>Upload PDF</Button>
+                        </CardContent>
+                      </Card>
                     </Box>
-                  </Card>
-                </Box>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#111827', border: '1px solid rgba(59,130,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" color="#60A5FA" mb={0.5}>Practice Quiz</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
-                        12 questions on Neural Networks
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#3B82F6', borderRadius: 2, px: 3 }}>Start Quiz</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: 10, bottom: 20, opacity: 0.5 }}>
-                      <Box sx={{ width: 60, height: 60, border: '1px solid #3B82F6', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(59,130,246,0.1)', boxShadow: '0 0 30px rgba(59,130,246,0.2)' }}>
-                        <Typography variant="h4" color="#60A5FA">?</Typography>
-                      </Box>
+                    <Box sx={{ minWidth: 260, flex: 1 }}>
+                      <Card sx={{ bgcolor: '#064E3B', border: '1px solid rgba(16,185,129,0.2)', height: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)' }}>
+                        <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
+                          <Typography variant="subtitle2" fontWeight="700" color="#34D399" mb={0.5}>AI Tutor</Typography>
+                          <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '60%' }}>
+                            Ask anything from your PDFs
+                          </Typography>
+                          <Button variant="contained" size="small" sx={{ bgcolor: '#10B981', color: '#000', fontWeight: 'bold', borderRadius: 2, px: 3 }}>Ask Tutor</Button>
+                        </CardContent>
+                        <Box sx={{ position: 'absolute', right: 0, bottom: -10 }}>
+                           <BrainIcon sx={{ fontSize: 100, color: '#34D399', opacity: 0.3 }} />
+                        </Box>
+                      </Card>
                     </Box>
-                  </Card>
-                </Box>
-                <Box sx={{ minWidth: 260, flex: 1 }}>
-                  <Card sx={{ bgcolor: '#064E3B', border: '1px solid rgba(16,185,129,0.2)', height: '100%', position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)' }}>
-                    <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                      <Typography variant="subtitle2" fontWeight="700" color="#34D399" mb={0.5}>AI Tutor</Typography>
-                      <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '60%' }}>
-                        Ask anything from your PDFs
-                      </Typography>
-                      <Button variant="contained" size="small" sx={{ bgcolor: '#10B981', color: '#000', fontWeight: 'bold', borderRadius: 2, px: 3 }}>Ask Tutor</Button>
-                    </CardContent>
-                    <Box sx={{ position: 'absolute', right: 0, bottom: -10 }}>
-                       <BrainIcon sx={{ fontSize: 100, color: '#34D399', opacity: 0.3 }} />
-                    </Box>
-                  </Card>
-                </Box>
+                  </>
+                )}
               </Stack>
             </Box>
 
@@ -371,12 +423,12 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Weak Topics — each uploaded PDF is a topic with its real progress */}
+            {/* Weakest Topics — powered by mastery engine */}
             {weakTopics.length > 0 && (
               <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Typography variant="subtitle1" fontWeight="700">Documents by Mastery</Typography>
+                    <Typography variant="subtitle1" fontWeight="700">Weakest Topics</Typography>
                     <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
                   </Stack>
                   <Stack spacing={2.5}>
@@ -405,42 +457,56 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {/* Accuracy Over Time */}
+            {/* Documents by Mastery — sorted descending */}
+            {documentsByMastery.length > 0 && (
+              <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+                    <Typography variant="subtitle1" fontWeight="700">Documents by Mastery</Typography>
+                  </Stack>
+                  <Stack spacing={2}>
+                    {documentsByMastery.map((item, i) => (
+                      <Box key={item.pdfId || i}>
+                        <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
+                          <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={item.progress}
+                          sx={{
+                            height: 3, borderRadius: 2,
+                            backgroundColor: 'rgba(255,255,255,0.05)',
+                            '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Learning Health */}
             <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                  <Typography variant="subtitle1" fontWeight="700">Accuracy Over Time</Typography>
-                  <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', px: 1.5, py: 0.5, borderRadius: 2 }}>
-                    <Typography variant="caption" color="text.secondary">30 Days v</Typography>
-                  </Box>
-                </Stack>
-                
-                {/* Simulated SVG Line Chart */}
-                <Box sx={{ position: 'relative', height: 120, mb: 1 }}>
-                  <svg viewBox="0 0 400 120" style={{ width: '100%', height: '100%' }} preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M 0 100 Q 20 50, 50 80 T 100 60 T 150 90 T 200 40 T 250 80 T 300 30 T 350 60 T 400 40 L 400 120 L 0 120 Z" fill="url(#lineGrad)" />
-                    <path d="M 0 100 Q 20 50, 50 80 T 100 60 T 150 90 T 200 40 T 250 80 T 300 30 T 350 60 T 400 40" fill="none" stroke="#8B5CF6" strokeWidth="3" />
-                    <circle cx="400" cy="40" r="4" fill="#8B5CF6" />
-                  </svg>
-                  <Box sx={{ position: 'absolute', right: 0, top: 0, bgcolor: '#8B5CF6', px: 1, py: 0.25, borderRadius: 1 }}>
-                    <Typography variant="caption" fontWeight="bold">82%</Typography>
-                  </Box>
-                </Box>
-                
-                <Stack direction="row" justifyContent="space-between" mt={1}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>Apr 20</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>Apr 27</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 4</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 11</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>May 18</Typography>
-                </Stack>
-
+                <Typography variant="subtitle1" fontWeight="700" mb={3}>Learning Health</Typography>
+                <Grid container spacing={2}>
+                  {[
+                    { label: 'Mastery Score', value: `${healthStats.masteryScore}%`, color: '#8B5CF6', icon: <BrainIcon /> },
+                    { label: 'Accuracy', value: `${healthStats.accuracy}%`, color: '#10B981', icon: <ChartIcon /> },
+                    { label: 'Study Streak', value: `${healthStats.studyStreak} days`, color: '#F97316', icon: <FireIcon /> },
+                    { label: 'At Risk', value: healthStats.atRisk, color: '#EF4444', icon: <SchoolIcon /> },
+                  ].map((h, i) => (
+                    <Grid item xs={6} key={i}>
+                      <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, p: 1.5, textAlign: 'center' }}>
+                        <Box sx={{ color: h.color, mb: 0.5, display: 'flex', justifyContent: 'center' }}>{h.icon}</Box>
+                        <Typography variant="h5" fontWeight="800" color={h.color}>{h.value}</Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>{h.label}</Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
               </CardContent>
             </Card>
 

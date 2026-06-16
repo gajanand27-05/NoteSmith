@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, 
-  Typography, 
-  Button, 
-  Paper, 
-  List, 
-  ListItem, 
-  ListItemText, 
-  ListItemIcon, 
-  CircularProgress,
-  Alert,
-  Divider,
-  IconButton
+  Box, Typography, Button, Paper, Stack,
+  ListItemIcon, CircularProgress, IconButton,
+  Alert, List, ListItem, ListItemText, Divider,
 } from '@mui/material';
 import { 
   CloudUpload as UploadIcon, 
   PictureAsPdf as PdfIcon,
-  CheckCircle as SuccessIcon,
-  Error as ErrorIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { listPdfs, uploadPdf, deletePdf } from '../api';
 
