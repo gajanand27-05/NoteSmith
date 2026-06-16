@@ -9,7 +9,7 @@ import {
   Quiz as QuizIcon, QuestionAnswer as TutorIcon, Refresh as RefreshIcon,
   CheckCircle as CompleteIcon, ArrowForward as ArrowIcon,
   Warning as WarningIcon, EmojiObjects as TipIcon, Insights as IntelIcon,
-  ExpandMore as ExpandIcon,
+  ExpandMore as ExpandIcon, PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import PdfSelector from '../components/shared/PdfSelector';
 import { getStudyPlan, getPdfMastery, getWeeklyIntel } from '../api';
@@ -115,11 +115,18 @@ const StudyLoop = () => {
     <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
         <Typography variant="h4" fontWeight={700}>Study Loop</Typography>
-        <Tooltip title="Refresh mastery data">
-          <IconButton size="small" onClick={handleRefreshMastery} sx={{ color: 'text.disabled' }}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <Stack direction="row" spacing={0.5}>
+          <Tooltip title="Export Reports">
+            <IconButton size="small" onClick={() => navigate('/reports')} sx={{ color: 'text.disabled' }}>
+              <PdfIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Refresh mastery data">
+            <IconButton size="small" onClick={handleRefreshMastery} sx={{ color: 'text.disabled' }}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Stack>
       </Stack>
       <Typography variant="body2" color="text.secondary" paragraph>
         Your personalized study plan. Turn analytics into action.

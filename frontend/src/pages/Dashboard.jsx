@@ -175,9 +175,14 @@ const Dashboard = () => {
       <PageHeader
         icon={<BrainIcon />}
         actions={
-          <Button variant="outlined" startIcon={<UploadIcon />} onClick={() => navigate('/upload')}>
-            Upload Notes
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" startIcon={<PdfIcon />} onClick={() => navigate('/reports')}>
+              Reports
+            </Button>
+            <Button variant="outlined" startIcon={<UploadIcon />} onClick={() => navigate('/upload')}>
+              Upload Notes
+            </Button>
+          </Stack>
         }
       />
 

@@ -15,6 +15,7 @@ from app.api.routes import (
     qa,
     questions,
     quiz,
+    reports,
     studyplan,
     summarize,
     tutor,
@@ -57,6 +58,7 @@ app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(loop.router, prefix="/api/loop", tags=["loop"])
 app.include_router(mastery.router, prefix="/api/mastery", tags=["mastery"])
 app.include_router(intel.router, prefix="/api/intel", tags=["intel"])
+app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 app.include_router(studyplan.router, prefix="/api/study-plan", tags=["study-plan"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 

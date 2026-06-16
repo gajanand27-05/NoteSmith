@@ -13,6 +13,7 @@ import Quiz from './pages/Quiz';
 import Tutor from './pages/Tutor';
 import PaperAnalyzer from './pages/PaperAnalyzer';
 import StudyLoop from './pages/StudyLoop';
+import Reports from './pages/Reports';
 
 const RouteBoundary = ({ children }) => (
   <ErrorBoundary key={window.location.pathname}>{children}</ErrorBoundary>
@@ -34,6 +35,7 @@ function App() {
             <Route path="study-loop" element={<RouteBoundary><StudyLoop /></RouteBoundary>} />
             <Route path="tutor" element={<RouteBoundary><Tutor /></RouteBoundary>} />
             <Route path="paper-analyzer" element={<RouteBoundary><PaperAnalyzer /></RouteBoundary>} />
+            <Route path="reports" element={<RouteBoundary><Reports /></RouteBoundary>} />
           </Route>
         </Routes>
       </Router>

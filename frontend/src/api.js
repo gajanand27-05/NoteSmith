@@ -119,4 +119,8 @@ export const submitQuizAnswer = (pdfId, questionNumber, correct, topicId = null)
 export const reviewFlashcard = (pdfId, cardNumber, correct, confidence = null, topicId = null) =>
   api.post('/flashcards/review', { pdf_id: pdfId, card_number: cardNumber, correct, confidence, topic_id: topicId });
 
+export const getMasteryReport = () => api.get('/reports/mastery', { responseType: 'text' });
+export const getWeeklyReport = () => api.get('/reports/weekly', { responseType: 'text' });
+export const getFullReport = () => api.get('/reports/full', { responseType: 'text' });
+
 export default api;
