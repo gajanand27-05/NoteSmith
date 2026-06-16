@@ -12,7 +12,7 @@ import {
   FormatQuote as QuoteIcon,
   PictureAsPdf as PdfIcon,
   CloudUpload as UploadIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import { getDashboardStats, listPdfs, getMasterySummary, getWeakTopics, getRecommendations } from '../api';
 import { useNavigate } from 'react-router-dom';
@@ -24,29 +24,28 @@ import EmptyState from '../components/EmptyState';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ pdf_count: 0, chunk_count: 0, page_count: 0 });
+  const [stats, setStats] = useState(null);
   const [recentPdfs, setRecentPdfs] = useState([]);
-  const [masteryMap, setMasteryMap] = useState({});
+  const [masteryList, setMasteryList] = useState([]);
+  const [weakTopics, setWeakTopics] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
-      const [statsRes, pdfsRes, masteryRes, recsRes] = await Promise.all([
+      const [statsRes, pdfsRes, masteryRes, weakRes, recsRes] = await Promise.all([
         getDashboardStats(),
         listPdfs(),
         getMasterySummary().catch(() => ({ data: [] })),
+        getWeakTopics().catch(() => ({ data: [] })),
         getRecommendations().catch(() => ({ data: { recommendations: [] } })),
       ]);
       setStats(statsRes.data);
       const pdfs = pdfsRes.data || [];
       setRecentPdfs(pdfs.slice(0, 3));
-      // Build mastery lookup: pdf_id → mastery_score
-      const mm = {};
-      (masteryRes.data || []).forEach((m) => { mm[m.pdf_id] = m; });
-      // For PDFs without any mastery events yet, set score to 0
-      pdfs.forEach((p) => { if (!mm[p.id]) mm[p.id] = { pdf_id: p.id, pdf_name: p.original_name, mastery_score: 0, total_events: 0 }; });
-      setMasteryMap(mm);
+      const mastery = masteryRes.data || [];
+      setMasteryList(mastery);
+      setWeakTopics(weakRes.data || []);
       setRecommendations(recsRes.data?.recommendations || []);
     } catch (error) {
       console.error("Failed to fetch dashboard data", error);
@@ -58,41 +57,43 @@ const Dashboard = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const avgMastery = useMemo(() => {
-    const scores = recentPdfs.map((p) => masteryMap[p.id]?.mastery_score ?? 0);
+  const masteryMap = useMemo(() => {
+    const mm = {};
+    masteryList.forEach((m) => { mm[m.pdf_id] = m; });
+    recentPdfs.forEach((p) => {
+      if (!mm[p.id]) mm[p.id] = { pdf_id: p.id, pdf_name: p.original_name, mastery_score: 0, total_events: 0, breakdown: {} };
+    });
+    return mm;
+  }, [masteryList, recentPdfs]);
+
+  const overallMastery = useMemo(() => {
+    if (stats && stats.mastery != null) return Math.round(stats.mastery * 100);
+    const scores = Object.values(masteryMap).map((m) => m.mastery_score ?? 0).filter(Boolean);
     if (scores.length === 0) return 0;
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  }, [recentPdfs, masteryMap]);
+  }, [stats, masteryMap]);
 
-  const healthStats = useMemo(() => {
-    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0);
-    if (entries.length === 0) return { masteryScore: 0, accuracy: 0, studyStreak: 0, atRisk: 0 };
-    const avgMastery = entries.reduce((s, m) => s + (m.mastery_score ?? 0), 0) / entries.length;
-    const atRisk = entries.filter((m) => (m.mastery_score ?? 100) < 50).length;
-    return {
-      masteryScore: Math.round(avgMastery),
-      accuracy: Math.round(entries.reduce((s, m) => s + (m.mastery_score ?? 0), 0) / entries.length),
-      studyStreak: 3,
-      atRisk,
-    };
+  const accuracyScore = useMemo(() => {
+    const scores = Object.values(masteryMap).filter((m) => m.total_events > 0).map((m) => m.mastery_score ?? 0);
+    if (scores.length === 0) return 0;
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   }, [masteryMap]);
 
-  const weakTopics = useMemo(() => {
-    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
-    if (entries.length === 0) return [];
-    return entries
-      .map((m) => {
-        const score = m.mastery_score ?? 0;
-        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-        return {
-          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
-          progress: score,
-          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
-          pdfId: m.pdf_id,
-        };
-      })
-      .sort((a, b) => a.progress - b.progress);
-  }, [masteryMap, recentPdfs]);
+  const studyStreak = useMemo(() => {
+    if (stats?.streak?.current_streak != null) return stats.streak.current_streak;
+    return 0;
+  }, [stats]);
+
+  const atRisk = useMemo(() => {
+    return Object.values(masteryMap).filter((m) => (m.mastery_score ?? 100) < 50 && m.total_events > 0).length;
+  }, [masteryMap]);
+
+  const healthStats = useMemo(() => ({
+    masteryScore: overallMastery,
+    accuracy: accuracyScore,
+    studyStreak,
+    learningRisk: atRisk,
+  }), [overallMastery, accuracyScore, studyStreak, atRisk]);
 
   const documentsByMastery = useMemo(() => {
     const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
@@ -110,6 +111,51 @@ const Dashboard = () => {
       .sort((a, b) => b.progress - a.progress);
   }, [masteryMap, recentPdfs]);
 
+  const displayWeakTopics = useMemo(() => {
+    if (weakTopics.length > 0) {
+      return weakTopics.slice(0, 5).map((m) => {
+        const score = m.mastery_score ?? 0;
+        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        return {
+          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
+          progress: score,
+          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
+          pdfId: m.pdf_id,
+        };
+      });
+    }
+    const entries = Object.values(masteryMap).filter((m) => m.total_events > 0 || recentPdfs.some((p) => p.id === m.pdf_id));
+    return [...entries]
+      .map((m) => {
+        const score = m.mastery_score ?? 0;
+        const topicName = (m.pdf_name || '').replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
+        return {
+          topic: topicName.length > 30 ? topicName.slice(0, 27) + '...' : topicName,
+          progress: score,
+          color: score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981',
+          pdfId: m.pdf_id,
+        };
+      })
+      .sort((a, b) => a.progress - b.progress);
+  }, [weakTopics, masteryMap, recentPdfs]);
+
+  const maxStreak = useMemo(() => {
+    if (stats?.streak?.longest_streak != null) return stats.streak.longest_streak;
+    return studyStreak;
+  }, [stats, studyStreak]);
+
+  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const streakDays = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      days.push(studyStreak > i);
+    }
+    return days;
+  }, [studyStreak]);
+
+  const todayIndex = new Date().getDay();
+  const orderedDayLabels = [...dayLabels.slice(todayIndex), ...dayLabels.slice(0, todayIndex)];
+
   if (loading) return <PageSkeleton />;
 
   return (
@@ -124,10 +170,10 @@ const Dashboard = () => {
       />
 
       <Grid container spacing={3} wrap="nowrap" sx={{ minWidth: 900 }}>
-        {/* LEFT COLUMN - Main Content */}
+        {/* LEFT COLUMN */}
         <Grid item xs={8}>
           <Stack spacing={3}>
-            
+
             {/* Hero Card: Overall Mastery */}
             <Card sx={{ 
               position: 'relative', overflow: 'hidden', p: 0,
@@ -140,15 +186,15 @@ const Dashboard = () => {
                       <BrainIcon fontSize="small" /> OVERALL MASTERY
                     </Typography>
                     <Typography variant="h2" fontWeight="800" sx={{ mt: 1, mb: 0.5, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-                      {avgMastery}%
+                      {overallMastery}%
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                      {recentPdfs.length > 0 ? 'Across your recent documents' : 'Upload a PDF to start tracking'}
+                      {recentPdfs.length > 0 ? 'Across all your documents' : 'Upload a PDF to start tracking'}
                     </Typography>
-                    
+
                     <LinearProgress 
                       variant="determinate" 
-                      value={avgMastery} 
+                      value={overallMastery} 
                       sx={{ 
                         height: 6, 
                         borderRadius: 3, 
@@ -163,10 +209,10 @@ const Dashboard = () => {
 
                     <Stack direction="row" gap={1.5} sx={{ maxWidth: 450, overflowX: 'auto', pb: 1, flexWrap: 'wrap' }}>
                       {[
-                        { icon: <UploadIcon />, label: 'PDFs', value: stats.pdf_count },
-                        { icon: <BookIcon />, label: 'Chunks', value: stats.chunk_count },
-                        { icon: <ChartIcon />, label: 'Pages', value: stats.page_count },
-                        { icon: <SchoolIcon />, label: 'Quizzes', value: '—' },
+                        { icon: <UploadIcon />, label: 'PDFs', value: stats?.pdf_count ?? 0 },
+                        { icon: <BookIcon />, label: 'With Data', value: stats?.pdfs_with_data ?? 0 },
+                        { icon: <ChartIcon />, label: 'Active', value: stats?.active_pdfs ?? 0 },
+                        { icon: <SchoolIcon />, label: 'Attempts', value: stats?.total_attempts ?? '—' },
                       ].map((stat, i) => (
                         <StatCard key={i} icon={stat.icon} label={stat.label} value={stat.value} sx={{ flex: 1, minWidth: 90 }} />
                       ))}
@@ -177,21 +223,15 @@ const Dashboard = () => {
                     </Button>
                   </Box>
 
-                  {/* Full-bleed right-side video background */}
                   <Box sx={{
                     position: 'absolute', right: 0, top: 0, bottom: 0,
                     width: '60%', zIndex: 0, display: 'flex', justifyContent: 'flex-end'
                   }}>
                     <video 
-                      autoPlay 
-                      loop 
-                      muted 
-                      playsInline
+                      autoPlay loop muted playsInline
                       src="/crystal_loop.mp4" 
                       style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover',
+                        width: '100%', height: '100%', objectFit: 'cover',
                         maskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)',
                         WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%, black 100%)'
                       }} 
@@ -201,7 +241,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Continue Learning - Using actual PDFs */}
+            {/* Continue Learning */}
             <Box>
               <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2} flexWrap="wrap">
                 <Typography variant="h6" fontWeight="700">Continue Learning</Typography>
@@ -209,7 +249,7 @@ const Dashboard = () => {
                   View all PDFs &rarr;
                 </Button>
               </Stack>
-              
+
               {recentPdfs.length === 0 ? (
                 <EmptyState
                   icon={<PdfIcon />}
@@ -239,48 +279,26 @@ const Dashboard = () => {
                               </Box>
                               <IconButton size="small" sx={{ color: 'text.secondary', p: 0 }}><MoreIcon fontSize="small" /></IconButton>
                             </Box>
-                            
                             <Typography variant="subtitle2" fontWeight="700" sx={{ 
                               mb: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', 
                               overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3, height: 36
                             }} title={pdf.original_name}>
                               {pdf.original_name.replace('.pdf', '')}
                             </Typography>
-                            
                             <Box sx={{ mt: 'auto' }}>
                               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem' }}>
                                 {progress}% Mastered
                               </Typography>
-                              <LinearProgress 
-                                variant="determinate" 
-                                value={progress} 
-                                sx={{ 
-                                  height: 4, borderRadius: 2, mb: 2,
-                                  backgroundColor: 'rgba(255,255,255,0.05)',
-                                  '& .MuiLinearProgress-bar': { backgroundColor: theme.main }
-                                }} 
-                              />
+                              <LinearProgress variant="determinate" value={progress} sx={{ height: 4, borderRadius: 2, mb: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: theme.main } }} />
                               <Grid container spacing={1}>
                                 <Grid item xs={4.5}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', 
-                                    boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}>Study</Button>
+                                  <Button fullWidth variant="contained" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' } }}>Study</Button>
                                 </Grid>
                                 <Grid item xs={4.5}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', 
-                                    boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}>Quiz</Button>
+                                  <Button fullWidth variant="contained" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'text.primary', boxShadow: 'none', fontSize: '0.7rem', py: 0.5, borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' } }}>Quiz</Button>
                                 </Grid>
                                 <Grid item xs={3}>
-                                  <Button fullWidth variant="contained" size="small" sx={{ 
-                                    bgcolor: 'rgba(255,255,255,0.05)', color: 'text.secondary', 
-                                    boxShadow: 'none', minWidth: 0, p: 0, py: 0.5, borderRadius: 2,
-                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' }
-                                  }}><MoreIcon fontSize="small" /></Button>
+                                  <Button fullWidth variant="contained" size="small" sx={{ bgcolor: 'rgba(255,255,255,0.05)', color: 'text.secondary', boxShadow: 'none', minWidth: 0, p: 0, py: 0.5, borderRadius: 2, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', boxShadow: 'none' } }}><MoreIcon fontSize="small" /></Button>
                                 </Grid>
                               </Grid>
                             </Box>
@@ -293,18 +311,21 @@ const Dashboard = () => {
               )}
             </Box>
 
-            {/* Recommended Next Steps — data-driven from mastery engine */}
+            {/* Recommended Next Action */}
             <Box>
-              <Typography variant="h6" fontWeight="700" mb={2}>Recommended Next Steps</Typography>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6" fontWeight="700">Recommended Next Action</Typography>
+                <Typography variant="caption" color="text.secondary">Powered by recommendation engine</Typography>
+              </Stack>
               <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 2, '&::-webkit-scrollbar': { height: 6 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 3 } }}>
                 {recommendations.length > 0 ? (
                   recommendations.slice(0, 3).map((rec, i) => {
-                    const recPalettes = [
+                    const palettes = [
                       { main: '#8B5CF6', bg: '#1A1525', border: 'rgba(139,92,246,0.2)', accent: '#A78BFA' },
                       { main: '#3B82F6', bg: '#111827', border: 'rgba(59,130,246,0.2)', accent: '#60A5FA' },
                       { main: '#10B981', bg: '#064E3B', border: 'rgba(16,185,129,0.2)', accent: '#34D399' },
                     ];
-                    const p = recPalettes[i % recPalettes.length];
+                    const p = palettes[i % palettes.length];
                     const docName = rec.topic || (rec.pdf_name || '').replace(/\.pdf$/i, '');
                     return (
                       <Box key={rec.pdf_id + (rec.topic || '')} sx={{ minWidth: 260, flex: 1 }}>
@@ -319,15 +340,7 @@ const Dashboard = () => {
                             <Typography variant="h4" fontWeight="800" color={p.accent} mb={1}>
                               {Math.round(rec.mastery)}%
                             </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.round(rec.mastery)}
-                              sx={{
-                                height: 3, borderRadius: 2, mb: 2,
-                                backgroundColor: 'rgba(255,255,255,0.05)',
-                                '& .MuiLinearProgress-bar': { backgroundColor: p.main }
-                              }}
-                            />
+                            <LinearProgress variant="determinate" value={Math.round(rec.mastery)} sx={{ height: 3, borderRadius: 2, mb: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: p.main } }} />
                             <Button variant="contained" size="small" sx={{ bgcolor: p.main, borderRadius: 2, px: 3 }} onClick={() => navigate(`/study/${rec.pdf_id}`)}>Study Now</Button>
                           </CardContent>
                         </Card>
@@ -339,9 +352,9 @@ const Dashboard = () => {
                     <Box sx={{ minWidth: 260, flex: 1 }}>
                       <Card sx={{ bgcolor: '#1A1525', border: '1px solid rgba(139,92,246,0.2)', height: '100%', position: 'relative', overflow: 'hidden' }}>
                         <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 }, zIndex: 1, position: 'relative' }}>
-                          <Typography variant="subtitle2" fontWeight="700" mb={0.5}>Review Weak Topics</Typography>
+                          <Typography variant="subtitle2" fontWeight="700" mb={0.5}>No Recommendations Yet</Typography>
                           <Typography variant="caption" color="text.secondary" display="block" mb={3} sx={{ minHeight: 35, maxWidth: '70%' }}>
-                            Upload a PDF and start studying to get recommendations.
+                            Upload a PDF and start studying to get personalised recommendations.
                           </Typography>
                           <Button variant="contained" size="small" sx={{ bgcolor: '#8B5CF6', borderRadius: 2, px: 3 }} onClick={() => navigate('/upload')}>Upload PDF</Button>
                         </CardContent>
@@ -369,38 +382,43 @@ const Dashboard = () => {
           </Stack>
         </Grid>
 
-        {/* RIGHT COLUMN - Sidebar stats */}
+        {/* RIGHT COLUMN */}
         <Grid item xs={4}>
           <Stack spacing={3}>
-            
+
             {/* Streak Card */}
             <Card sx={{ bgcolor: '#0B0A10', backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden' }}>
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                 <Box position="relative" zIndex={1}>
                   <Typography variant="subtitle1" fontWeight="700" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    You're on a streak! <FireIcon fontSize="small" sx={{ color: '#F97316' }} />
+                    {studyStreak > 0 ? `You're on a streak!` : 'Start your streak'}
+                    <FireIcon fontSize="small" sx={{ color: '#F97316' }} />
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
-                    7 days in a row
+                    {studyStreak > 0
+                      ? `${studyStreak} day${studyStreak > 1 ? 's' : ''} in a row`
+                      : 'Complete a study session to begin'}
                   </Typography>
                   <Stack direction="row" gap={1.5} flexWrap="nowrap">
-                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                    {orderedDayLabels.map((day, i) => (
                       <Stack key={i} direction="column" alignItems="center" gap={1}>
                         <Box sx={{ 
                           width: 28, height: 28, borderRadius: '50%', 
-                          bgcolor: i < 5 ? '#6366F1' : (i === 5 ? '#FFF' : 'rgba(255,255,255,0.05)'),
-                          color: i < 5 ? '#fff' : (i === 5 ? '#000' : 'text.secondary'),
+                          bgcolor: streakDays[i] ? '#6366F1' : 'rgba(255,255,255,0.05)',
+                          color: streakDays[i] ? '#fff' : 'text.secondary',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.85rem', fontWeight: i === 5 ? '900' : 'bold'
+                          fontSize: '0.85rem', fontWeight: 'bold'
                         }}>
-                          {i < 5 ? '✓' : (i === 5 ? 'S' : '')}
+                          {streakDays[i] ? '✓' : ''}
                         </Box>
-                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: i === 5 ? '#FFF' : 'text.secondary', fontWeight: i === 5 ? '700' : '400' }}>{day}</Typography>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: streakDays[i] ? '#FFF' : 'text.secondary', fontWeight: streakDays[i] ? '700' : '400' }}>{day}</Typography>
                       </Stack>
                     ))}
                   </Stack>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
+                    Best streak: {maxStreak} day{maxStreak > 1 ? 's' : ''}
+                  </Typography>
                 </Box>
-                {/* Giant Fire Icon on Right */}
                 <FireIcon sx={{ 
                   position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)',
                   fontSize: 140, color: '#F97316', filter: 'drop-shadow(0 0 40px rgba(249,115,22,0.5))', opacity: 0.8, zIndex: 0
@@ -423,16 +441,16 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Weakest Topics — powered by mastery engine */}
-            {weakTopics.length > 0 && (
+            {/* Weakest Topics */}
+            {displayWeakTopics.length > 0 && (
               <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
                     <Typography variant="subtitle1" fontWeight="700">Weakest Topics</Typography>
-                    <Button size="small" sx={{ color: 'primary.light', minWidth: 0, p: 0, textTransform: 'none' }}>View all &rarr;</Button>
+                    <Typography variant="caption" color="text.secondary">Powered by mastery engine</Typography>
                   </Stack>
                   <Stack spacing={2.5}>
-                    {weakTopics.map((item, i) => (
+                    {displayWeakTopics.map((item, i) => (
                       <Box key={item.pdfId || i}>
                         <Box display="flex" justifyContent="space-between" mb={1} flexWrap="wrap">
                           <Box display="flex" alignItems="center" gap={1.5}>
@@ -441,15 +459,7 @@ const Dashboard = () => {
                           </Box>
                           <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
                         </Box>
-                        <LinearProgress 
-                          variant="determinate" 
-                          value={item.progress} 
-                          sx={{ 
-                            height: 4, borderRadius: 2, 
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
-                          }} 
-                        />
+                        <LinearProgress variant="determinate" value={item.progress} sx={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 } }} />
                       </Box>
                     ))}
                   </Stack>
@@ -457,13 +467,11 @@ const Dashboard = () => {
               </Card>
             )}
 
-            {/* Documents by Mastery — sorted descending */}
+            {/* Documents by Mastery */}
             {documentsByMastery.length > 0 && (
               <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Typography variant="subtitle1" fontWeight="700">Documents by Mastery</Typography>
-                  </Stack>
+                  <Typography variant="subtitle1" fontWeight="700" mb={3}>Documents by Mastery</Typography>
                   <Stack spacing={2}>
                     {documentsByMastery.map((item, i) => (
                       <Box key={item.pdfId || i}>
@@ -471,15 +479,7 @@ const Dashboard = () => {
                           <Typography variant="caption" fontWeight="600" color="text.primary">{item.topic}</Typography>
                           <Typography variant="caption" color="text.secondary">{item.progress}%</Typography>
                         </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={item.progress}
-                          sx={{
-                            height: 3, borderRadius: 2,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 }
-                          }}
-                        />
+                        <LinearProgress variant="determinate" value={item.progress} sx={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.05)', '& .MuiLinearProgress-bar': { backgroundColor: item.color, borderRadius: 2 } }} />
                       </Box>
                     ))}
                   </Stack>
@@ -490,13 +490,16 @@ const Dashboard = () => {
             {/* Learning Health */}
             <Card sx={{ bgcolor: '#0B0A10', border: '1px solid rgba(255,255,255,0.05)' }}>
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Typography variant="subtitle1" fontWeight="700" mb={3}>Learning Health</Typography>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+                  <Typography variant="subtitle1" fontWeight="700">Learning Health</Typography>
+                  <Typography variant="caption" color="text.secondary">Powered by mastery engine</Typography>
+                </Stack>
                 <Grid container spacing={2}>
                   {[
                     { label: 'Mastery Score', value: `${healthStats.masteryScore}%`, color: '#8B5CF6', icon: <BrainIcon /> },
                     { label: 'Accuracy', value: `${healthStats.accuracy}%`, color: '#10B981', icon: <ChartIcon /> },
-                    { label: 'Study Streak', value: `${healthStats.studyStreak} days`, color: '#F97316', icon: <FireIcon /> },
-                    { label: 'At Risk', value: healthStats.atRisk, color: '#EF4444', icon: <SchoolIcon /> },
+                    { label: 'Study Streak', value: `${healthStats.studyStreak} day${healthStats.studyStreak !== 1 ? 's' : ''}`, color: '#F97316', icon: <FireIcon /> },
+                    { label: 'Learning Risk', value: healthStats.learningRisk, color: '#EF4444', icon: <SchoolIcon /> },
                   ].map((h, i) => (
                     <Grid item xs={6} key={i}>
                       <Box sx={{ bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 2, p: 1.5, textAlign: 'center' }}>
