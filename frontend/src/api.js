@@ -103,6 +103,8 @@ export const analyzePapers = (pdfIds, targetYear = 2024) =>
 
 export const getDashboardStats = () => api.get('/dashboard/overall');
 export const getStudyLoopStatus = () => api.get('/loop/status');
+export const getStudyPlan = (pdfId = null, limit = 10) =>
+  api.get('/study-plan/plan', { params: { pdf_id: pdfId || undefined, limit } });
 
 // Mastery tracking
 export const recordMasteryEvent = (pdfId, eventType, correct = null, score = null, topicId = null, metadata = null) =>
