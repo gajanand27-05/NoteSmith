@@ -113,7 +113,7 @@ export const getWeakTopics = () => api.get('/mastery/weak/all');
 export const getRecommendations = () => api.get('/mastery/recommendations/all');
 export const submitQuizAnswer = (pdfId, questionNumber, correct, topicId = null) =>
   api.post('/quiz/submit', { pdf_id: pdfId, question_number: questionNumber, correct, topic_id: topicId });
-export const reviewFlashcard = (pdfId, cardNumber, correct, topicId = null) =>
-  api.post('/flashcards/review', { pdf_id: pdfId, card_number: cardNumber, correct, topic_id: topicId });
+export const reviewFlashcard = (pdfId, cardNumber, correct, confidence = null, topicId = null) =>
+  api.post('/flashcards/review', { pdf_id: pdfId, card_number: cardNumber, correct, confidence, topic_id: topicId });
 
 export default api;

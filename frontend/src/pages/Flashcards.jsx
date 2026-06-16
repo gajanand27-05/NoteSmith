@@ -65,7 +65,7 @@ const Flashcards = () => {
   const handleReview = async (confidence) => {
     if (!cards[currentIndex] || reviewed.has(currentIndex)) return;
     try {
-      await reviewFlashcard(pdfId, currentIndex + 1, confidence.correct);
+      await reviewFlashcard(pdfId, currentIndex + 1, confidence.correct, confidence.label.toLowerCase());
       const newReviewed = new Set(reviewed);
       newReviewed.add(currentIndex);
       setReviewed(newReviewed);
