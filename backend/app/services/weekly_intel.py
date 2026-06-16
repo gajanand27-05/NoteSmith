@@ -5,6 +5,13 @@ from app.db import database
 from app.services import mastery as mastery_service
 
 DAYS = 7
+DAY_ORDER = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
+
+
+def _week_start(dt: datetime) -> datetime:
+    """Return midnight of the most recent Sunday (start of week)."""
+    days_since_sunday = (dt.weekday() + 1) % 7
+    return dt.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days_since_sunday)
 
 
 def _compute_quiz_accuracy(events: list[dict]) -> float | None:
@@ -18,7 +25,9 @@ def _compute_quiz_accuracy(events: list[dict]) -> float | None:
 
 def generate_weekly_report() -> dict:
     all_events = database.get_all_events()
-    cutoff = datetime.utcnow() - timedelta(days=DAYS)
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=DAYS)
+    week_start = _week_start(now)
 
     # Filter last 7 days
     recent_events = []
@@ -30,27 +39,25 @@ def generate_weekly_report() -> dict:
         except (ValueError, TypeError):
             continue
 
-    # Daily activity for heatmap
+    # Daily activity for heatmap (current week Sun-Sat)
     day_counts = Counter()
     event_type_counts = Counter()
     for e in recent_events:
         try:
             ts = datetime.fromisoformat(e["created_at"])
-            day_label = ts.strftime("%a").lower()  # mon, tue, etc.
+            day_label = ts.strftime("%a").lower()
             day_counts[day_label] += 1
             event_type_counts[e["event_type"]] += 1
         except (ValueError, TypeError):
             continue
 
-    # Build 7-day heatmap (Mon-Sun)
-    today_idx = datetime.utcnow().weekday()  # Mon=0
-    day_order = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+    # Build current week heatmap (Sunday → Saturday)
     heatmap = []
     for i in range(7):
-        day = day_order[(today_idx - (6 - i)) % 7]
+        day_label = DAY_ORDER[i]
         heatmap.append({
-            "day": day,
-            "count": day_counts.get(day, 0),
+            "day": day_label,
+            "count": day_counts.get(day_label, 0),
         })
 
     # Mastery growth (compare all docs now vs 7 days ago)
