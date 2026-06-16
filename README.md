@@ -1,298 +1,574 @@
+<div align="center">
+  <img src="resources/logo.png" alt="NoteSmith" width="220"/>
+  <br/><br/>
+  <h1>📝 NoteSmith</h1>
+  <p><strong>Your AI Study Copilot — Turn PDFs into Mastery</strong></p>
 
-<p align="center">
-  <img src="frontend/public/3Dlogo.png" alt="NoteSmith Logo" width="180"/>
-</p>
+  <a href="#🚀-quick-start"><img src="https://img.shields.io/badge/⚡_Quick_Start-blue?style=for-the-badge"/></a>
+  <a href="#🧠-features"><img src="https://img.shields.io/badge/🧩_Features-purple?style=for-the-badge"/></a>
+  <a href="#🏗️-architecture"><img src="https://img.shields.io/badge/🏗️_Architecture-orange?style=for-the-badge"/></a>
+  <a href="#🧪-testing"><img src="https://img.shields.io/badge/🧪_Tests-green?style=for-the-badge"/></a>
 
-<h1 align="center">📝 NoteSmith</h1>
-<p align="center">
-  <b>Your AI Study Copilot — Turn PDFs into Mastery</b>
-</p>
+  <br/><br/>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat&logo=python" alt="Python"/>
-  <img src="https://img.shields.io/badge/react-19-purple?style=flat&logo=react" alt="React"/>
-  <img src="https://img.shields.io/badge/FastAPI-0.110-green?style=flat&logo=fastapi" alt="FastAPI"/>
-  <img src="https://img.shields.io/badge/MUI-9-blueviolet?style=flat&logo=mui" alt="MUI"/>
-  <img src="https://img.shields.io/badge/ChromaDB-0.4-orange?style=flat" alt="ChromaDB"/>
-  <img src="https://img.shields.io/badge/Ollama-gemma4:12b-ff69b4?style=flat" alt="Ollama"/>
-  <img src="https://img.shields.io/badge/license-MIT-brightgreen?style=flat" alt="License"/>
-  <img src="https://img.shields.io/badge/status-production%20ready-success?style=flat" alt="Status"/>
-</p>
+  <div>
+    <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white"/>
+    <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black"/>
+    <img src="https://img.shields.io/badge/FastAPI-0.110-009688?style=flat-square&logo=fastapi&logoColor=white"/>
+    <img src="https://img.shields.io/badge/MUI-9-007FFF?style=flat-square&logo=mui&logoColor=white"/>
+    <img src="https://img.shields.io/badge/ChromaDB-0.4-FF6B35?style=flat-square"/>
+    <img src="https://img.shields.io/badge/Ollama-gemma4:12b-EE4C2C?style=flat-square&logo=ollama&logoColor=white"/>
+    <img src="https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2?style=flat-square&logo=google&logoColor=white"/>
+    <img src="https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square"/>
+    <img src="https://img.shields.io/badge/Status-Production_Ready-success?style=flat-square"/>
+  </div>
 
-<p align="center">
-  <img src="resources/Screenshot%202026-06-12%20190448.png" alt="Dashboard Preview" width="85%" style="border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);"/>
-</p>
+  <br/>
 
----
+  <img src="resources/Dashboard.png" alt="Dashboard" width="92%" style="border-radius:16px;border:2px solid rgba(255,255,255,0.1);box-shadow:0 24px 48px -12px rgba(0,0,0,0.5);"/>
+</div>
 
-## ✨ What is NoteSmith?
-
-**NoteSmith** is an AI-powered study companion that transforms your PDF notes, textbooks, and question papers into an **interactive learning experience**.
-
-Upload any PDF → It gets chunked, embedded, and indexed into a vector database → Then you can:
-
-| 🧠 Feature | ⚡ What it Does |
-|---|---|
-| **Summarize** | Condense chapters into short/medium/long summaries |
-| **Q&A** | Ask questions & get answers grounded in your PDFs |
-| **Questions** | Generate 2/5/10-mark exam-style questions |
-| **Flashcards** | AI-generated front/back cards for active recall |
-| **Quiz** | Multiple-choice quizzes with adjustable difficulty |
-| **AI Tutor** | Explain any concept at 6 levels (kid → interview) |
-| **Paper Analyzer** | Spot topic trends & predict exam questions |
-| **Mastery Tracking** | Weighted score across quiz, flashcard & tutor events |
-| **Study Loop** | Spaced repetition with weak-topic detection |
-| **Weekly Intel** | Personalized study recommendations |
-| **Reports** | Generate & download mastery reports |
+<br/>
 
 ---
 
-## 🎯 Demo
+<div align="center">
+  <h2>🔥 The Problem</h2>
+  <p><strong>Textbooks are heavy. Notes pile up. Exam prep is overwhelming.</strong></p>
+  <p>You spend hours reading, but <em>retention</em> is the real battle. What if AI did the heavy lifting?</p>
 
-> ⚡ **Try it yourself in under 2 minutes:**
+  <h2>💡 The Solution</h2>
+  <p><strong>NoteSmith — upload your PDFs and instantly get summaries, Q&A, flashcards, quizzes,<br/>
+  an AI tutor, exam predictions, and a smart mastery tracker that knows what you're weak at.</strong></p>
+</div>
+
+---
+
+## ⚡ One-Liner
+
+> Upload any PDF → AI reads, chunks, and indexes it → You get a full interactive study suite with RAG-powered Q&A, spaced repetition, mastery tracking, and exam prediction.
+
+---
+
+## 🎮 Features at a Glance
+
+<div align="center">
+
+| ⚡ Feature | 🎯 What It Does | 🔥 Why You'll Love It |
+|---|---|---|
+| **📄 Upload & Index** | Drag-drop PDF → chunked → embedded → vector DB | Auto-processing with live status |
+| **📝 Summarize** | AI condenses chapters (short/medium/long) | Save hours of reading |
+| **💬 Q&A** | Ask anything, get answers from your PDFs | RAG-powered with source citations |
+| **📋 Questions** | Generate 2/5/10-mark exam questions | Practice like the real exam |
+| **🃏 Flashcards** | AI creates front/back cards | Active recall on autopilot |
+| **📊 Quiz** | Multiple-choice at 3 difficulty levels | Test yourself anywhere |
+| **🧠 AI Tutor** | Explain concepts at 6 levels (kid → interview) | Learn at YOUR pace |
+| **📈 Paper Analyzer** | Upload past papers → extracts topics → predicts questions | Ace your exams |
+| **🎯 Mastery Engine** | Weighted score across all activities | Know exactly what you suck at |
+| **🔄 Study Loop** | Spaced repetition + weak topic detection | Never forget again |
+| **📬 Weekly Intel** | Activity heatmap + growth stats | Track your progress |
+| **📑 Reports** | Generate mastery & weekly reports | Proof of your improvement |
+
+</div>
+
+---
+
+## ⚙️ System Flow
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  1. Upload a PDF     ──►  2. Generate Summary          │
-│  3. Ask Questions    ──►  4. Create Flashcards          │
-│  5. Take a Quiz      ──►  6. Track Your Mastery         │
-│  7. Analyze Papers   ──►  8. Predict Exam Questions     │
-└─────────────────────────────────────────────────────────┘
+                            ┌──────────────┐
+                            │   📤 USER    │
+                            │  Uploads PDF │
+                            └──────┬───────┘
+                                   │
+                            ┌──────▼───────┐
+                            │   📖 PyPDF   │
+                            │  Extract     │
+                            │  Text        │
+                            └──────┬───────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+             ┌──────▼──────┐             ┌───────▼────────┐
+             │  ✂️ Chunker  │             │  📊 Status DB  │
+             │ (1000/200)  │             │  (SQLite)      │
+             └──────┬──────┘             └───────┬────────┘
+                    │                            │
+             ┌──────▼──────┐                     │
+             │  🧮 nomic-  │                     │
+             │  embed-text │                     │
+             └──────┬──────┘                     │
+                    │                            │
+             ┌──────▼──────────┐                 │
+             │  🗄️ ChromaDB    │                 │
+             │  Vector Store   │                 │
+             │  (cosine space) │                 │
+             └──────┬──────────┘                 │
+                    │                            │
+                    └──────────┬─────────────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │   👤 USER INTERACTS │
+                    │   (React Frontend)  │
+                    └──────────┬──────────┘
+                               │
+            ┌──────────────────┴──────────────────┐
+            │                                     │
+     ┌──────▼────────┐                  ┌─────────▼────────┐
+     │  🔍 RAG Query │                  │  📚 Other Tasks   │
+     │  (retrieve    │                  │  Summarize        │
+     │   + LLM)      │                  │  Quiz Generation  │
+     └──────┬────────┘                  │  Flashcard Gen    │
+            │                           │  Tutor Explain    │
+            │                           │  Paper Analyzer   │
+            │                           │  Mastery Compute  │
+            │                           └─────────┬────────┘
+            │                                     │
+            └────────────────┬────────────────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  🤖 LLM CORE   │
+                    │                 │
+                    │  ┌───────────┐  │
+                    │  │  🌤️ Gemini │  │  ← Try first
+                    │  │  2.5 Flash │  │
+                    │  └─────┬─────┘  │
+                    │        │ fail   │
+                    │  ┌─────▼─────┐  │
+                    │  │  🦙 Ollama │  │  ← Fallback
+                    │  │ gemma4:12b│  │
+                    │  └───────────┘  │
+                    └────────┬────────┘
+                             │
+                    ┌────────▼────────┐
+                    │  ✅ RESPONSE   │
+                    │  to User       │
+                    └─────────────────┘
 ```
-
-### 📸 Screenshots
-
-| Dashboard | Upload & Library |
-|---|---|
-| <img src="resources/Screenshot%202026-06-12%20190448.png" width="400"/> | <img src="resources/Screenshot%202026-06-12%20192433.png" width="400"/> |
-
-| Q&A with Streaming | Flashcards |
-|---|---|
-| <img src="resources/image.png" width="400"/> | <img src="resources/image%20(2).png" width="400"/> |
-
-| Theme System | Paper Analyzer |
-|---|---|
-| <img src="resources/theme.png" width="400"/> | <img src="resources/format.png" width="400"/> |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    FRONTEND (React 19)                       │
-│  ┌───────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐ │
-│  │ Dashboard │  │  Upload  │  │  Q&A      │  │  Quiz     │ │
-│  │  (Stats)  │  │  (PDFs)  │  │  (Stream) │  │  (MCQ)    │ │
-│  └───────────┘  └──────────┘  └───────────┘  └───────────┘ │
-│  ┌───────────┐  ┌──────────┐  ┌───────────┐  ┌───────────┐ │
-│  │ Flashcards│  │  Tutor   │  │  Paper    │  │  Study    │ │
-│  │           │  │  (6 lvls)│  │  Analyzer │  │  Loop     │ │
-│  └───────────┘  └──────────┘  └───────────┘  └───────────┘ │
-└──────────────────────┬──────────────────────────────────────┘
-                       │  REST + SSE (Streaming)
-┌──────────────────────▼──────────────────────────────────────┐
-│                   BACKEND (FastAPI)                          │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────────┐ │
-│  │  PDF     │  │  RAG     │  │  Mastery  │  │  Learning  │ │
-│  │  Routes  │  │  Pipeline│  │  Tracking │  │  Loop      │ │
-│  └──────────┘  └──────────┘  └───────────┘  └────────────┘ │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐                 │
-│  │  LLM    │  │  Vector  │  │  Chunker  │                 │
-│  │  Client │  │  Store   │  │           │                 │
-│  └──────────┘  └──────────┘  └───────────┘                 │
-└──────┬──────────────────────┬───────────────────────────────┘
-       │                      │
-┌──────▼──────┐    ┌─────────▼──────────┐
-│  Ollama     │    │  SQLite + ChromaDB  │
-│  gemma4:12b │    │  + Supabase (opt.)  │
-│  nomic-embed│    │                     │
-└─────────────┘    └─────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                             🌐 FRONTEND (React 19 + Vite)                           │
+│                                                                                      │
+│  ┌─────────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────────┐  │
+│  │  Dashboard  │  │  Upload   │  │  Q&A      │  │  Quiz     │  │  Flashcards   │  │
+│  │  Streaks    │  │  DragDrop  │  │  SSE      │  │  MCQ      │  │  Active       │  │
+│  │  Mastery    │  │  Progress │  │  Stream   │  │  Engine   │  │  Recall       │  │
+│  └─────────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────────┘  │
+│  ┌─────────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐                     │
+│  │  AI Tutor   │  │  Paper    │  │  Study    │  │  Reports  │                     │
+│  │  6 Levels   │  │  Analyzer │  │  Loop     │  │  Mastery  │                     │
+│  │  Follow-ups │  │  Predict  │  │  Spaced   │  │  Weekly   │                     │
+│  └─────────────┘  └───────────┘  └───────────┘  └───────────┘                     │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │  Shared Layer: MUI v9 Theme (🌙/☀️), Command Palette (Ctrl+K), Axios,       │  │
+│  │  React Router v7, Keyboard Shortcuts (G D, G U, G Q...), Error Boundaries  │  │
+│  └──────────────────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────┬───────────────────────────────────────────────────┘
+                                 │  REST + SSE (streaming)
+                                 │
+┌────────────────────────────────▼───────────────────────────────────────────────────┐
+│                            ⚙️ BACKEND (FastAPI + Uvicorn)                           │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │                              API ROUTES                                      │  │
+│  │  /api/pdfs  /api/qa  /api/quiz  /api/flashcards  /api/questions              │  │
+│  │  /api/tutor /api/papers /api/mastery /api/loop /api/intel                    │  │
+│  │  /api/summarize /api/reports /api/study-plan /api/dashboard                  │  │
+│  └──────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                      │
+│  ┌────────────────────────────┬──────────────────────────┬──────────────────────┐  │
+│  │        SERVICES            │         CORE             │        DB            │  │
+│  │                           │                          │                      │  │
+│  │  summarizer.py            │  llm.py (Gemini→Ollama)  │  database.py         │  │
+│  │  quiz_gen.py              │  chunker.py              │  (SQLite)            │  │
+│  │  flashcard_gen.py         │  embeddings.py           │                      │  │
+│  │  question_gen.py          │  pdf_processor.py        │  supabase.py         │  │
+│  │  paper_analyzer.py        │  vector_store.py         │  (PostgreSQL opt.)   │  │
+│  │  mastery.py               │  retriever.py            │                      │  │
+│  │  learning_loop.py         │  rag_pipeline.py         │                      │  │
+│  │  dashboard.py             │                          │                      │  │
+│  │  weekly_intel.py          │                          │                      │  │
+│  │  report_gen.py            │                          │                      │  │
+│  │  study_plan.py            │                          │                      │  │
+│  │  tutor.py                 │                          │                      │  │
+│  └────────────────────────────┴──────────────────────────┴──────────────────────┘  │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
+│  │  Config: pydantic-settings (.env) | Models: Pydantic v2 (BaseModel)         │  │
+│  └──────────────────────────────────────────────────────────────────────────────┘  │
+└────────┬──────────────────────────────────────────┬─────────────────────────────────┘
+         │                                          │
+         │                                          │
+┌────────▼────────────────┐    ┌───────────────────▼──────────────────┐
+│    🤖 AI LAYER          │    │      💾 STORAGE LAYER               │
+│                         │    │                                      │
+│  ┌───────────────────┐  │    │  ┌───────────────────────────────┐  │
+│  │  🌤️ Gemini Cloud  │  │    │  │  SQLite (notesmith.db)       │  │
+│  │  (gemini-2.5-flash)│  │    │  │  ├─ pdfs table               │  │
+│  │  ↓ fallback →      │  │    │  │  ├─ mastery_events table     │  │
+│  │  🦙 Ollama Local   │  │    │  │  └─ mastery_scores table     │  │
+│  │  (gemma4:12b)      │  │    │  └───────────────────────────────┘  │
+│  │  (nomic-embed-text)│  │    │                                      │
+│  └───────────────────┘  │    │  ┌───────────────────────────────┐  │
+│                         │    │  │  ChromaDB (PersistentClient)  │  │
+│                         │    │  │  ├─ Cosine similarity space   │  │
+│                         │    │  │  └─ HNSW indexing             │  │
+│                         │    │  └───────────────────────────────┘  │
+│                         │    │                                      │
+│                         │    │  ┌───────────────────────────────┐  │
+│                         │    │  │  Supabase (optional)          │  │
+│                         │    │  │  ├─ quiz_attempts table       │  │
+│                         │    │  │  ├─ flashcard_reviews table   │  │
+│                         │    │  │  └─ tutor_sessions table      │  │
+│                         │    │  └───────────────────────────────┘  │
+└─────────────────────────┘    └──────────────────────────────────────┘
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
+<details>
+<summary><strong>🪟 Windows — One-Click Setup</strong></summary>
 
-- **Python 3.10+**
-- **Node.js 18+**
-- **Ollama** (with `gemma4:12b` & `nomic-embed-text` pulled)
-- *(Optional)* **Supabase** account for Study Loop history
-
-### Setup
-
-```bash
-# 1. Clone & enter
+```bat
+# 1. Clone
 git clone https://github.com/gajanand27-05/NoteSmith.git
 cd NoteSmith
 
-# 2. Run the setup script
+# 2. Run setup (creates venv, installs deps, npm install, copies .env)
 setup.bat
-# └── Creates venv, installs Python deps, runs npm install
-# └── Copies .env.example → .env
 
-# 3. Edit .env if needed
-#    - OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, OLLAMA_EMBED_MODEL
-#    - Optional: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+# 3. Make sure Ollama is running with models pulled
+ollama serve
+ollama pull gemma4:12b
+ollama pull nomic-embed-text
 
-# 4. Start everything!
+# 4. Start everything
 run_all.bat
-# └── Backend  → http://localhost:8000
-# └── Frontend → http://localhost:3000
+# Backend → http://localhost:8000
+# Frontend → http://localhost:3000
 ```
+</details>
 
-### Manual Start
+<details>
+<summary><strong>🐧 Linux / macOS — Manual Setup</strong></summary>
 
 ```bash
-# Terminal 1: Backend
-call venv\Scripts\activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+# 1. Clone
+git clone https://github.com/gajanand27-05/NoteSmith.git
+cd NoteSmith
 
-# Terminal 2: Frontend
-cd frontend && npm run dev
+# 2. Python backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-# Terminal 3: Ollama (must be running)
+# 3. Frontend
+cd frontend && npm install && cd ..
+
+# 4. Environment
+cp .env.example .env
+# Edit .env if needed
+
+# 5. Start Ollama
 ollama serve
-```
+ollama pull gemma4:12b
+ollama pull nomic-embed-text
 
-> 🌐 **API Docs** at [http://localhost:8000/docs](http://localhost:8000/docs)
+# 6. Run (two terminals)
+# Terminal 1:
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+# Terminal 2:
+cd frontend && npm run dev
+```
+</details>
+
+> 🌐 **API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🧩 Features Deep Dive
+## 🧠 Features Deep Dive
 
-### 📄 PDF Upload & Processing
-- Drag-and-drop upload with real-time progress bar
-- Automatic chunking (1000 chars, 200 overlap)
-- Embedding via `nomic-embed-text` → ChromaDB vector store
-- Processing pipeline: `uploaded → chunking → embedding → indexing`
+### 📄 PDF Upload & Processing Pipeline
 
-### 💬 Q&A with RAG
-- Retrieval-Augmented Generation over your PDFs
-- Server-Sent Events (SSE) for real-time streaming answers
-- Source citations with distance scores
-- Automatic mastery tracking on each question
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ Uploaded │──► │ Chunking │──► │Embedding │──► │ Indexing │──► │  Done!   │
+│  (file)  │    │ (1000ch) │    │ (nomic)  │    │(ChromaDB)│    │  ✅      │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+```
 
-### 🧠 AI Tutor
-- 6 depth levels: Kid → School → High School → College → Engineering → Interview
-- Context-aware answers using PDF content
-- Follow-up suggestions & "Explain Simpler" button
-- Integration with Flashcard & Quiz pages
+- 🎯 **Drag & drop** or click to upload — 50MB max
+- ⏱️ **Real-time progress** bar + processing step indicator
+- ✂️ **Chunker** splits text at sentence boundaries (1000 chars, 200 overlap)
+- 🧮 **nomic-embed-text** generates 768-dimension embeddings
+- 🗄️ **ChromaDB** stores vectors with cosine distance + HNSW indexing
+- 🔄 **Auto-polling** frontend shows "uploaded → chunking → embedding → indexing"
 
-### 📊 Mastery Engine
-| Event Type | Weight |
-|---|---|
-| Quiz | 45% |
-| Flashcard | 30% |
-| Study Session | 10% |
-| Tutor Session | 10% |
-| Q&A | 5% |
-| Paper Analyzer | 5% |
+---
 
-- Time-decay weighting (recent events matter more)
-- Topic-level & document-level scores
-- Trend detection (improving / declining / stable)
-- Weak-topic identification for targeted revision
+### 💬 Q&A with RAG (Retrieval-Augmented Generation)
 
-### 📈 Paper Analyzer
-- Upload 2+ previous year question papers
-- AI extracts questions, topics, marks
-- Normalizes topic names across papers
-- Computes frequency & trend (rising / falling / stable)
-- **Predicts** likely exam questions with confidence scores
-- Perfect for exam prep strategy
+```
+  ┌─────────────┐
+  │ "What is X?" │
+  └──────┬──────┘
+         │
+  ┌──────▼──────┐
+  │  🔍 Retriever│  ← ChromaDB cosine search (top-k=5)
+  │  embed query │
+  └──────┬──────┘
+         │ returns 5 most relevant chunks
+  ┌──────▼──────┐
+  │  📝 LLM     │  ← Gemini → Ollama fallback
+  │  Generate   │  ← System: "Answer using ONLY these notes"
+  └──────┬──────┘
+         │ SSE stream (token by token)
+  ┌──────▼──────┐
+  │  ✅ Answer  │  + source citations with distance scores
+  │  + Sources  │  + mastery event recorded
+  └─────────────┘
+```
 
-### 🔁 Study Loop
-- Spaced repetition via quiz & flashcard reviews
-- Automatic weak-topic detection
-- Study streak tracking (current & best)
-- Activity log across all study modes
-- Weekly intelligence report
+- ⚡ **SSE streaming** — tokens arrive in real-time (not waiting for full response)
+- 📎 **Source citations** — each answer shows which chunks it came from
+- 🎯 **Mastery integration** — every Q&A updates your mastery score
+- 🤖 **Auto-fallback** — Gemini first, Ollama if quota exceeded
+
+---
+
+### 🧠 AI Tutor — 6 Levels of Depth
+
+```
+                🧒 Kid        "Explain like I'm 5"
+                🏫 School     "Simple terms please"
+                📚 High School "I'm studying for finals"
+                🎓 College     "Give me the full picture"
+                🔧 Engineering "Technical deep-dive"
+                💼 Interview   "Make me job-ready"
+```
+
+- 🔗 **Context-aware** — optionally use a PDF's content for grounded answers
+- 🔄 **Follow-up suggestions** — AI generates related questions to explore
+- ➡️ **"Explain Simpler"** — drops one difficulty level
+- 💡 **"Give Example"** — generates a new example on demand
+- 🎮 **One-click** → navigate to Quiz or Flashcards for the same topic
+
+---
+
+### 📊 Mastery Engine — Know What You Don't Know
+
+```
+EVENT                    WEIGHT    WHY IT MATTERS
+────────────────────────────────────────────────────
+📝 Quiz                  45%       Direct knowledge assessment
+🃏 Flashcard             30%       Active recall signal
+📖 Study Session         10%       General engagement
+🗣️  Tutor Session         10%       Conceptual understanding
+💬 Q&A                    5%       Curiosity-driven learning
+📈 Paper Analyzer         5%       Exam prep intensity
+────────────────────────────────────────────────────
+
+TIME DECAY:  <7 days = 100%  |  7-30 days = 80%  |  30-90 days = 50%  |  >90 days = 20%
+```
+
+- 🎯 **Weighted scoring** — quizzes matter most, but everything counts
+- 📉 **Time decay** — recent activity weights more (forgetting curve!)
+- 📈 **Trend detection** — improving / declining / stable per document
+- 🆘 **Weak topic identification** — finds what needs revision
+- 💡 **Smart recommendations** — "Your mastery is low, try a quiz!"
+
+---
+
+### 📈 Paper Analyzer — Predict Your Exam
+
+```
+Upload 2+ past question papers
+              │
+              ▼
+      ┌──────────────┐
+      │ AI Extracts  │  → Q1. What is POS tagging? MARKS: 5 TOPIC: NLP
+      │ per paper    │  → Q2. Explain backprop... MARKS: 10 TOPIC: ML
+      └──────┬───────┘
+             │
+      ┌──────▼───────┐
+      │ Normalize    │  → "POS Tagging" = "Part-of-Speech Tagging" = "POS"
+      │ Topic Names  │
+      └──────┬───────┘
+             │
+      ┌──────▼───────┐
+      │ Compute      │  → NLP: 12 times (rising 📈)
+      │ Frequencies  │  → ML: 8 times (stable ➡️)
+      │ & Trends     │  → DBMS: 3 times (falling 📉)
+      └──────┬───────┘
+             │
+      ┌──────▼───────┐
+      │ PREDICT      │  → P1. [NLP] What is HMM? (conf: 0.92)
+      │ Exam         │  → P2. [ML] Explain gradient descent (conf: 0.85)
+      │ Questions!   │  → P3. [NLP] Difference between POS and parsing (conf: 0.78)
+      └──────────────┘
+```
+
+---
+
+### 🔄 Study Loop — Spaced Repetition on Autopilot
+
+- 📊 **Tracks** quiz attempts, flashcard reviews, and tutor sessions
+- 🧮 **Weighted accuracy** — quiz (1.0×), flashcard (0.6×), tutor (0.3×)
+- 🎯 **Per-topic weakness** — identifies exactly which topics need revision
+- 📅 **Study streak** — current + best streak, day-of-week heatmap
+- ⏰ **Neglected topic detection** — finds topics you haven't reviewed in days
+- 📬 **Weekly Intel** — activity summary, growth stats, heatmap
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Activate venv first
-call venv\Scripts\activate
+# Activate virtual environment
+call venv\Scripts\activate   # Windows
+source venv/bin/activate     # Linux/macOS
 
-# Run all tests
-pytest
+# Run all 17 test suites
+pytest -v
 
-# Run with coverage
-pytest --cov=backend/app
+# With coverage report
+pytest --cov=backend/app --cov-report=term-missing
 
-# Run specific test
+# Specific test file
 pytest tests/test_question_gen.py -v
 ```
 
-17 test suites covering:
-- PDF processing & chunking
-- Question & flashcard generation
-- Quiz generation
-- Paper analysis
-- Dashboard & route endpoints
-- Learning loop & mastery tracking
-- Database operations
+**What's tested:**
 
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
+| Test Suite | What It Covers |
 |---|---|
-| **Frontend** | React 19, Vite 8, Material UI 9, React Router 7 |
-| **Backend** | FastAPI 0.110, Pydantic 2, Uvicorn |
-| **AI/LLM** | Ollama (gemma4:12b), Google Gemini 2.5 Flash (optional) |
-| **Embeddings** | nomic-embed-text via Ollama |
-| **Vector DB** | ChromaDB (PersistentClient, cosine space) |
-| **Database** | SQLite (mastery tracking) + Supabase/Postgres (study loop history) |
-| **PDF** | PyPDF |
-| **Streaming** | SSE (Server-Sent Events) for real-time Q&A |
+| `test_pdf_processor.py` | Text extraction, page counting |
+| `test_chunker.py` | Chunk splitting, overlap handling |
+| `test_question_gen.py` | 2/5/10-mark question generation |
+| `test_flashcard_gen.py` | Flashcard front/back generation |
+| `test_quiz_gen.py` | MCQ generation with options |
+| `test_paper_analyzer.py` | Question extraction, topic prediction |
+| `test_learning_loop.py` | Mastery computation, streak tracking |
+| `test_dashboard.py` | Dashboard stats, trend classification |
+| `test_database.py` | SQLite CRUD, migrations |
+| `test_schemas.py` | Pydantic validation |
+| `test_routes.py` | API endpoint responses |
+| `test_tutor.py` | Tutor explanation generation |
+| `test_summarize.py` | Summary generation |
+| `test_loop_routes.py` | Study loop API endpoints |
+| `test_dashboard_routes.py` | Dashboard API endpoints |
 
 ---
 
-## 🎨 UI Highlights
+## 🛠️ Tech Stack Deep Dive
 
-- 🌗 **Dark/Light mode** with smooth transition
-- 🪟 **Glassmorphism** cards & blurred backdrops
-- ⌨️ **Command palette** (`Ctrl+K`) — navigate anywhere
-- 🔑 **Keyboard shortcuts** — `G D` → Dashboard, `G U` → Upload, `G Q` → Questions, `?` → Help
-- 📱 **Responsive** — works on mobile, tablet, desktop
-- 🎥 **Animated backgrounds** — crystal loop video on dashboard
+| Layer | Tech | What It Does |
+|---|---|---|
+| **🎨 Frontend** | React 19 + Vite 8 | Blazing fast dev server, HMR, optimized builds |
+| **🎭 UI** | MUI 9 (Material-UI) | Glassmorphism, dark/light theme, responsive grid |
+| **📡 HTTP** | Axios | API calls with upload progress callbacks |
+| **🧭 Routing** | React Router 7 | Nested layouts, error boundaries per route |
+| **⌨️ UX** | Command Palette + Keyboard shortcuts | Ctrl+K to navigate, G+letter for instant page jumps |
+| **⚙️ Backend** | FastAPI 0.110 + Uvicorn | Async Python REST API with auto-generated OpenAPI docs |
+| **✅ Validation** | Pydantic v2 | Request/response schemas with strict typing |
+| **🤖 Primary AI** | Ollama — gemma4:12b | Local LLM, no data leaves your machine |
+| **☁️ Cloud AI** | Google Gemini 2.5 Flash | Auto-fallback when Ollama unavailable |
+| **🧮 Embeddings** | nomic-embed-text (via Ollama) | 768-dim vectors for semantic search |
+| **🗄️ Vector DB** | ChromaDB (PersistentClient) | Cosine similarity, HNSW indexing, persistent on disk |
+| **💾 DB** | SQLite | Mastery tracking, PDF metadata, event store |
+| **☁️ Cloud DB** | Supabase (PostgreSQL) | Optional: study loop history with time-series queries |
+| **📄 PDF** | PyPDF | Text extraction from PDFs |
+| **⚡ Streaming** | SSE (Server-Sent Events) | Real-time token-by-token Q&A responses |
+| **🎬 Media** | Three.js + @react-three/fiber | 3D animated crystal loop on dashboard |
 
 ---
 
-## 🤝 Contributing
+## 🎨 UI/UX Highlights
 
-1. Fork the repo
-2. Create your feature branch (`git checkout -b feature/amazing`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push (`git push origin feature/amazing`)
-5. Open a Pull Request
+```
+                          ╭──────────────────╮
+                          │  🌗 Theme Toggle │
+                          ╰──────────────────╯
+    ╭──────────╮     ╭──────────────────────────────╮
+    │  Sidebar │     │       Main Content            │
+    │          │     │                               │
+    │  📊 Dash │     │  ┌─────────────────────────┐  │
+    │  📤 Upload│     │  │  Hero Card: Mastery     │  │
+    │  📝 Summ. │     │  │  82% ████████████░░░    │  │
+    │  💬 Q&A   │     │  └─────────────────────────┘  │
+    │  📋 Qs    │     │  ┌──────┐ ┌──────┐ ┌──────┐ │
+    │  🃏 Cards │     │  │PDF 1 │ │PDF 2 │ │PDF 3 │ │
+    │  📊 Quiz  │     │  │72%   │ │45%   │ │91%   │ │
+    │  🧠 Tutor │     │  └──────┘ └──────┘ └──────┘ │
+    │  📈 Papers│     │  ┌─────────────────────────┐ │
+    │  🔄 Loop │     │  │  Recommended Next        │ │
+    │  📑 Rpt   │     │  └─────────────────────────┘ │
+    ╰──────────╯     ╰──────────────────────────────╯
+```
+
+- 🌗 **Dark/Light mode** — system-aware with smooth glassmorphism transitions
+- 🪟 **Glass cards** — semi-transparent with backdrop blur
+- ⌨️ **Command Palette** (`Ctrl+K`) — search & navigate any page
+- 🔑 **Keyboard shortcuts** — `G+D` Dashboard, `G+U` Upload, `G+Q` Questions, `?` Help
+- 📱 **Fully responsive** — mobile sidebar drawer, adaptive grids
+- 🎥 **3D crystal loop** — animated hero background on dashboard
+- 🔥 **Orange streak circles** — Sun-Sat day tracker with glow effects
+
+---
+
+## 📁 Project Structure
+
+```
+NoteSmith/
+├── backend/
+│   └── app/
+│       ├── api/routes/      # 15 FastAPI routers (health, pdfs, qa, quiz...)
+│       ├── core/             # LLM, chunker, embeddings, vector store, RAG
+│       ├── db/               # SQLite + Supabase clients
+│       ├── models/           # Pydantic schemas
+│       └── services/         # Business logic (12 services)
+├── frontend/
+│   ├── public/               # Static assets, 3D logo, crystal video
+│   └── src/
+│       ├── components/       # Shared: Sidebar, TopBar, Layout, CommandPalette
+│       ├── pages/            # 11 page components
+│       └── assets/           # Hero image, icons
+├── data/                     # Uploads + ChromaDB persistence
+├── tests/                    # 17 pytest test suites
+├── resources/                # README images, screenshots
+├── setup.bat                 # One-click setup
+├── run_all.bat               # One-click launch
+└── .env.example              # Environment template
+```
 
 ---
 
 ## 👤 Author
 
-**Gajanand Dhayagode**
-
-- GitHub: [@gajanand27-05](https://github.com/gajanand27-05)
-- Email: gajanandvd2005@gmail.com
+<div align="center">
+  <strong>Gajanand Dhayagode</strong>
+  <br/>
+  <a href="https://github.com/gajanand27-05">🐙 @gajanand27-05</a>
+  &nbsp;•&nbsp;
+  <a href="mailto:gajanandvd2005@gmail.com">✉️ gajanandvd2005@gmail.com</a>
+</div>
 
 ---
 
 ## 📜 License
 
-MIT © 2026 Gajanand Dhayagode
-
----
-
-<p align="center">
-  <img src="resources/3D%20logo.png" width="80" alt="3D Logo"/>
+<div align="center">
+  <strong>MIT © 2026 Gajanand Dhayagode</strong>
+  <br/><br/>
+  <img src="resources/logo.png" width="60"/>
   <br/>
-  <b>Made with ❤️ for students who dream big</b>
-</p>
+  <strong>Made with ❤️, ☕, and 🤖 for students who dream big</strong>
+</div>
