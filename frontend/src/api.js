@@ -68,7 +68,7 @@ export const askQuestionStream = async (pdfId, question, { onToken, onSources, o
           const data = JSON.parse(line.slice(6));
           if (data.type === 'token') onToken(data.token);
           else if (data.type === 'sources') onSources(data.sources || []);
-          else if (data.type === 'done') onDone();
+          else if (data.type === 'done') onDone(data.mastery || null);
         } catch { /* skip malformed */ }
       }
     }
@@ -78,7 +78,7 @@ export const askQuestionStream = async (pdfId, question, { onToken, onSources, o
         const data = JSON.parse(buffer.slice(6));
         if (data.type === 'token') onToken(data.token);
         else if (data.type === 'sources') onSources(data.sources || []);
-        else if (data.type === 'done') onDone();
+        else if (data.type === 'done') onDone(data.mastery || null);
       } catch { /* skip */ }
     }
   } catch (e) {

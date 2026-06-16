@@ -156,9 +156,28 @@ const EmptyChat = ({ onSelectPrompt, hasPdf }) => (
   </Box>
 );
 
+const MasteryChip = ({ mastery }) => {
+  if (!mastery || mastery.delta === 0) return null;
+  const color = mastery.delta > 0 ? '#10B981' : '#EF4444';
+  const sign = mastery.delta > 0 ? '+' : '';
+  return (
+    <Chip
+      size="small"
+      variant="outlined"
+      label={`Mastery ${Math.round(mastery.before)}% → ${Math.round(mastery.after)}% (${sign}${Math.round(mastery.delta)}%)`}
+      sx={{
+        height: 20, fontSize: '0.6rem', fontWeight: 600,
+        color, borderColor: color,
+        '& .MuiChip-label': { px: 0.75 },
+      }}
+    />
+  );
+};
+
 const MessageBubble = ({ msg, onCopy, onRegenerate }) => {
   const isUser = msg.role === 'user';
   const isStreaming = msg._streaming;
+  const hasMastery = msg.mastery && msg.mastery.delta !== 0;
   const time = msg.timestamp
     ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
@@ -200,6 +219,7 @@ const MessageBubble = ({ msg, onCopy, onRegenerate }) => {
         </Paper>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.25, px: 0.5 }}>
           {time && <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.disabled' }}>{time}</Typography>}
+          {hasMastery && <MasteryChip mastery={msg.mastery} />}
           <Box sx={{ flex: 1 }} />
           {!isUser && !isStreaming && <MessageActions msg={msg} onCopy={onCopy} onRegenerate={onRegenerate} />}
         </Stack>
@@ -265,10 +285,13 @@ const QA = () => {
         }));
         updateStreamMessage();
       },
-      onDone: () => {
+      onDone: (mastery) => {
         if (!streamMsgRef.current) return;
         streamMsgRef.current._streaming = false;
         streamMsgRef.current.content = streamMsgRef.current.content.trimEnd();
+        if (mastery && mastery.delta !== 0) {
+          streamMsgRef.current.mastery = mastery;
+        }
         updateStreamMessage();
         streamMsgRef.current = null;
         setStreaming(false);

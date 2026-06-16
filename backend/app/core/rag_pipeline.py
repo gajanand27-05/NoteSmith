@@ -36,15 +36,21 @@ def answer_question(pdf_id: str, question: str, top_k: int = 5) -> dict:
     return {"answer": answer, "sources": chunks}
 
 
-async def answer_question_stream(pdf_id: str, question: str, top_k: int = 5):
-    """Async generator yielding SSE events: sources, token*, done."""
+async def answer_question_stream(pdf_id: str, question: str, top_k: int = 5, mastery_update: dict | None = None):
+    """Async generator yielding SSE events: sources, token*, done.
+
+    Optionally includes mastery_update (with before/after/delta) in the done event.
+    """
     chunks = retriever.retrieve(pdf_id, question, top_k=top_k)
     if not chunks:
         yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
         yield (
             f"data: {json.dumps({'type': 'token', 'token': 'No relevant content found in the uploaded notes.'})}\n\n"
         )
-        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        done_event = {"type": "done"}
+        if mastery_update:
+            done_event["mastery"] = mastery_update
+        yield f"data: {json.dumps(done_event)}\n\n"
         return
 
     sanitized = []
@@ -74,4 +80,7 @@ async def answer_question_stream(pdf_id: str, question: str, top_k: int = 5):
     async for token in llm.chat_stream(messages):
         yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
 
-    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    done_event = {"type": "done"}
+    if mastery_update:
+        done_event["mastery"] = mastery_update
+    yield f"data: {json.dumps(done_event)}\n\n"
