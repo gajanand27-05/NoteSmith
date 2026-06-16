@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 
 from app.core.chunker import chunk_text
 from app.core.llm import llm
 from app.core.pdf_processor import PDFProcessor
 from app.db import database
+
+logger = logging.getLogger(__name__)
 
 LENGTH_TARGETS = {
     "short": 250,
@@ -24,7 +27,11 @@ def _summarize_chunk(text: str, target_words: int) -> str:
         f"NOTES:\n{text}\n\n"
         "SUMMARY:"
     )
-    return llm.generate_text(prompt)
+    try:
+        return llm.generate_text(prompt)
+    except Exception as e:
+        logger.error("LLM generate_text failed: %s", e, exc_info=True)
+        raise
 
 
 def _combine_summaries(partials: list[str], target_words: int) -> str:
@@ -36,7 +43,11 @@ def _combine_summaries(partials: list[str], target_words: int) -> str:
         f"PARTIAL SUMMARIES:\n{combined}\n\n"
         "FINAL SUMMARY:"
     )
-    return llm.generate_text(prompt)
+    try:
+        return llm.generate_text(prompt)
+    except Exception as e:
+        logger.error("Combining summaries failed: %s", e, exc_info=True)
+        raise
 
 
 def summarize_pdf(pdf_id: str, length: str) -> str:
@@ -57,12 +68,16 @@ def summarize_pdf(pdf_id: str, length: str) -> str:
     if not chunks:
         return "Could not chunk the document."
 
-    print(f"Summarizing PDF {pdf_id} in {len(chunks)} chunks using {llm.chat_model}...")
+    logger.info("Summarizing PDF %s in %d chunks using %s...", pdf_id, len(chunks), llm.chat_model)
     per_chunk = max(target // max(len(chunks), 1) + 50, 100)
     partials = []
     for i, c in enumerate(chunks, 1):
-        print(f"  -> Processing chunk {i}/{len(chunks)}...")
-        partials.append(_summarize_chunk(c, per_chunk))
+        logger.info("  -> Processing chunk %d/%d...", i, len(chunks))
+        try:
+            partials.append(_summarize_chunk(c, per_chunk))
+        except Exception as e:
+            logger.error("Chunk %d/%d failed: %s", i, len(chunks), e)
+            raise
         
-    print(f"Combining {len(chunks)} partial summaries into final result...")
+    logger.info("Combining %d partial summaries into final result...", len(chunks))
     return _combine_summaries(partials, target)

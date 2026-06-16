@@ -156,17 +156,15 @@ const Dashboard = () => {
     return studyStreak;
   }, [stats, studyStreak]);
 
-  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const todayIndex = new Date().getDay();
   const streakDays = useMemo(() => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      days.push(studyStreak > i);
+    const days = new Array(7).fill(false);
+    for (let i = 0; i < studyStreak && i < 7; i++) {
+      days[(todayIndex - i + 7) % 7] = true;
     }
     return days;
-  }, [studyStreak]);
-
-  const todayIndex = new Date().getDay();
-  const orderedDayLabels = [...dayLabels.slice(todayIndex), ...dayLabels.slice(0, todayIndex)];
+  }, [studyStreak, todayIndex]);
 
   if (loading) return <PageSkeleton />;
 
@@ -186,9 +184,8 @@ const Dashboard = () => {
         }
       />
 
-      <Grid container spacing={3} wrap="nowrap" sx={{ minWidth: 900 }}>
-        {/* LEFT COLUMN */}
-        <Grid item xs={8}>
+      <Box sx={{ display: 'flex', gap: 3, width: '100%' }}>
+        <Box sx={{ flex: 65, minWidth: 0 }}>
           <Stack spacing={3}>
 
             {/* Hero Card: Overall Mastery */}
@@ -403,10 +400,10 @@ const Dashboard = () => {
             </Box>
 
           </Stack>
-        </Grid>
+        </Box>
 
         {/* RIGHT COLUMN */}
-        <Grid item xs={4}>
+        <Box sx={{ flex: 35 }}>
           <Stack spacing={3}>
 
             {/* Streak Card */}
@@ -422,20 +419,23 @@ const Dashboard = () => {
                       ? `${studyStreak} day${studyStreak > 1 ? 's' : ''} in a row`
                       : 'Complete a study session to begin'}
                   </Typography>
-                  <Stack direction="row" gap={1.5} flexWrap="nowrap">
-                    {orderedDayLabels.map((day, i) => (
-                      <Stack key={i} direction="column" alignItems="center" gap={1}>
+                  <Stack direction="row" justifyContent="center" spacing="6px" sx={{ mb: 1 }}>
+                    {dayLabels.map((day, i) => (
+                      <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 28 }}>
                         <Box sx={{ 
                           width: 28, height: 28, borderRadius: '50%', 
-                          bgcolor: streakDays[i] ? '#6366F1' : 'rgba(255,255,255,0.05)',
-                          color: streakDays[i] ? '#fff' : 'text.secondary',
+                          bgcolor: streakDays[i] ? '#F97316' : 'transparent',
+                          border: '2px solid',
+                          borderColor: '#F97316',
+                          color: streakDays[i] ? '#fff' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.85rem', fontWeight: 'bold'
+                          fontSize: '0.75rem', fontWeight: 'bold', mb: 0,
+                          boxShadow: streakDays[i] ? '0 0 12px rgba(249,115,22,0.5)' : 'none',
                         }}>
                           {streakDays[i] ? '✓' : ''}
                         </Box>
-                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: streakDays[i] ? '#FFF' : 'text.secondary', fontWeight: streakDays[i] ? '700' : '400' }}>{day}</Typography>
-                      </Stack>
+                        <Typography variant="caption" sx={{ fontSize: '0.65rem', color: streakDays[i] ? '#F97316' : 'rgba(249,115,22,0.4)', fontWeight: streakDays[i] ? '700' : '500', lineHeight: 1, textAlign: 'center', width: 28 }}>{day}</Typography>
+                      </Box>
                     ))}
                   </Stack>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
@@ -546,8 +546,8 @@ const Dashboard = () => {
             </Card>
 
           </Stack>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

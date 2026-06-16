@@ -15,6 +15,9 @@ def generate_mastery_report() -> str:
     weakest = min(all_mastery, key=lambda d: d["mastery_score"]) if all_mastery else None
     recs = mastery_service.compute_recommendations()
 
+    weekly_growth = f'+{round(intel["mastery_growth"]*100, 1)}%' if intel.get('mastery_growth') is not None else 'N/A'
+    quiz_accuracy = f'{round(intel["quiz_accuracy"]*100)}%' if intel.get('quiz_accuracy') is not None else 'N/A'
+
     lines = [
         "# Mastery Progress Report",
         f"**Generated:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
@@ -24,9 +27,9 @@ def generate_mastery_report() -> str:
         f"|---|---|",
         f"| Documents | {total_docs} |",
         f"| Current Average Mastery | {avg_mastery}% |",
-        f"| Weekly Growth | {f'+{round(intel[\"mastery_growth\"]*100, 1)}%' if intel.get('mastery_growth') is not None else 'N/A'} |",
+        f"| Weekly Growth | {weekly_growth} |",
         f"| Total Study Events (7d) | {intel['total_events']} |",
-        f"| Quiz Accuracy (7d) | {f'{round(intel[\"quiz_accuracy\"]*100)}%' if intel.get('quiz_accuracy') is not None else 'N/A'} |",
+        f"| Quiz Accuracy (7d) | {quiz_accuracy} |",
         "",
     ]
 
@@ -70,6 +73,9 @@ def generate_mastery_report() -> str:
 def generate_weekly_summary() -> str:
     intel = weekly_intel.generate_weekly_report()
 
+    weekly_growth = f'+{round(intel["mastery_growth"]*100, 1)}%' if intel.get('mastery_growth') is not None else 'N/A'
+    quiz_accuracy = f'{round(intel["quiz_accuracy"]*100)}%' if intel.get('quiz_accuracy') is not None else 'N/A'
+
     lines = [
         "# Weekly Learning Summary",
         f"**Period:** {intel['period_label']}",
@@ -81,8 +87,8 @@ def generate_weekly_summary() -> str:
         f"| Study Events | {intel['total_events']} |",
         f"| Active Documents | {intel['active_docs']} |",
         f"| Average Mastery | {intel['avg_mastery']}% |",
-        f"| Mastery Growth | {f'+{round(intel[\"mastery_growth\"]*100, 1)}%' if intel.get('mastery_growth') is not None else 'N/A'} |",
-        f"| Quiz Accuracy | {f'{round(intel[\"quiz_accuracy\"]*100)}%' if intel.get('quiz_accuracy') is not None else 'N/A'} |",
+        f"| Mastery Growth | {weekly_growth} |",
+        f"| Quiz Accuracy | {quiz_accuracy} |",
         "",
     ]
 

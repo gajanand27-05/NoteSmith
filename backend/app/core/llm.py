@@ -80,11 +80,14 @@ class LLMClient:
 
     def generate_text(self, prompt: str) -> str:
         if self._cloud_client:
-            response = self._cloud_client.models.generate_content(
-                model=self._cloud_model,
-                contents=prompt,
-            )
-            return (response.text or "").strip()
+            try:
+                response = self._cloud_client.models.generate_content(
+                    model=self._cloud_model,
+                    contents=prompt,
+                )
+                return (response.text or "").strip()
+            except Exception:
+                pass
 
         response = self._client.generate(model=self.chat_model, prompt=prompt)
         text = getattr(response, "response", None)
@@ -94,15 +97,18 @@ class LLMClient:
 
     async def chat_stream(self, messages: list[dict[str, str]]) -> AsyncGenerator[str, None]:
         if self._cloud_client:
-            prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-            response = self._cloud_client.models.generate_content_stream(
-                model=self._cloud_model,
-                contents=prompt,
-            )
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-            return
+            try:
+                prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
+                response = self._cloud_client.models.generate_content_stream(
+                    model=self._cloud_model,
+                    contents=prompt,
+                )
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+                return
+            except Exception:
+                pass
 
         stream = await self._async_client.chat(
             model=self.chat_model,
@@ -116,12 +122,15 @@ class LLMClient:
 
     def chat_text(self, messages: list[dict[str, str]]) -> str:
         if self._cloud_client:
-            prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-            response = self._cloud_client.models.generate_content(
-                model=self._cloud_model,
-                contents=prompt,
-            )
-            return (response.text or "").strip()
+            try:
+                prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
+                response = self._cloud_client.models.generate_content(
+                    model=self._cloud_model,
+                    contents=prompt,
+                )
+                return (response.text or "").strip()
+            except Exception:
+                pass
 
         response = self._client.chat(model=self.chat_model, messages=messages)
         message = getattr(response, "message", None)
