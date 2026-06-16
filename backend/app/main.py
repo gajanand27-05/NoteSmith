@@ -7,6 +7,7 @@ from app.api.routes import (
     dashboard,
     flashcards,
     health,
+    intel,
     loop,
     mastery,
     papers,
@@ -55,6 +56,7 @@ app.include_router(tutor.router, prefix="/api/tutor", tags=["tutor"])
 app.include_router(papers.router, prefix="/api/papers", tags=["papers"])
 app.include_router(loop.router, prefix="/api/loop", tags=["loop"])
 app.include_router(mastery.router, prefix="/api/mastery", tags=["mastery"])
+app.include_router(intel.router, prefix="/api/intel", tags=["intel"])
 app.include_router(studyplan.router, prefix="/api/study-plan", tags=["study-plan"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 

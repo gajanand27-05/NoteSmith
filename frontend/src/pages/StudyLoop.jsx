@@ -2,16 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Button, Paper, CircularProgress, Stack, Chip,
-  LinearProgress, Card, CardContent, Divider, Alert, Grid, IconButton, Tooltip,
+  LinearProgress, Card, CardContent, Divider, Alert, Grid, IconButton, Tooltip, Collapse,
 } from '@mui/material';
 import {
   School as StudyIcon, TrendingUp as MasteryIcon, FlashOn as FlashIcon,
   Quiz as QuizIcon, QuestionAnswer as TutorIcon, Refresh as RefreshIcon,
   CheckCircle as CompleteIcon, ArrowForward as ArrowIcon,
-  Warning as WarningIcon, EmojiObjects as TipIcon,
+  Warning as WarningIcon, EmojiObjects as TipIcon, Insights as IntelIcon,
+  ExpandMore as ExpandIcon,
 } from '@mui/icons-material';
 import PdfSelector from '../components/shared/PdfSelector';
-import { getStudyPlan, getPdfMastery } from '../api';
+import { getStudyPlan, getPdfMastery, getWeeklyIntel } from '../api';
 
 const RISK_COLORS = { high: 'error', medium: 'warning', low: 'success' };
 
@@ -25,6 +26,8 @@ const StudyLoop = () => {
   const [masteryBefore, setMasteryBefore] = useState(null);
   const [showCompletion, setShowCompletion] = useState(false);
   const [completedActions, setCompletedActions] = useState([]);
+  const [weeklyIntel, setWeeklyIntel] = useState(null);
+  const [showIntel, setShowIntel] = useState(false);
 
   const fetchPlan = useCallback(async () => {
     setLoading(true);
@@ -49,6 +52,7 @@ const StudyLoop = () => {
 
   useEffect(() => {
     fetchPlan();
+    getWeeklyIntel().then((r) => setWeeklyIntel(r.data)).catch(() => {});
   }, [fetchPlan]);
 
   const handleAction = async (action, targetPdfId) => {
@@ -321,6 +325,132 @@ const StudyLoop = () => {
                   );
                 })}
               </Stack>
+            </Paper>
+          )}
+
+          {/* ── Weekly Intelligence ── */}
+          {weeklyIntel && (
+            <Paper sx={{ mt: 4, overflow: 'hidden' }}>
+              <Button
+                fullWidth
+                onClick={() => setShowIntel(!showIntel)}
+                sx={{ p: 2, justifyContent: 'space-between', textTransform: 'none', color: 'text.primary' }}
+              >
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <IntelIcon color="primary" />
+                  <Box textAlign="left">
+                    <Typography variant="subtitle1" fontWeight={700}>Weekly Intelligence</Typography>
+                    <Typography variant="caption" color="text.secondary">{weeklyIntel.period_label}</Typography>
+                  </Box>
+                </Stack>
+                <ExpandIcon sx={{ transform: showIntel ? 'rotate(180deg)' : 'none', transition: '0.2s', color: 'text.disabled' }} />
+              </Button>
+              <Collapse in={showIntel}>
+                <Divider />
+                <Box sx={{ p: 3 }}>
+                  {/* KPI Cards */}
+                  <Grid container spacing={2} sx={{ mb: 4 }}>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700}>{weeklyIntel.total_events}</Typography>
+                        <Typography variant="caption" color="text.secondary">Study Events</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700} color={weeklyIntel.mastery_growth >= 0 ? '#10B981' : '#EF4444'}>
+                          {weeklyIntel.mastery_growth !== null ? `${weeklyIntel.mastery_growth >= 0 ? '+' : ''}${(weeklyIntel.mastery_growth * 100).toFixed(1)}%` : 'N/A'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">Mastery Growth</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700}>{weeklyIntel.avg_mastery}%</Typography>
+                        <Typography variant="caption" color="text.secondary">Avg Mastery</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700}>{weeklyIntel.active_docs}</Typography>
+                        <Typography variant="caption" color="text.secondary">Active Docs</Typography>
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={6} sm={4} md={2}>
+                      <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                        <Typography variant="h5" fontWeight={700}>
+                          {weeklyIntel.quiz_accuracy !== null ? `${Math.round(weeklyIntel.quiz_accuracy * 100)}%` : 'N/A'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">Quiz Accuracy</Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+
+                  {/* Strongest / Weakest */}
+                  <Grid container spacing={2} sx={{ mb: 4 }}>
+                    <Grid item xs={12} sm={6}>
+                      <Card variant="outlined" sx={{ borderLeft: 3, borderLeftColor: 'success.main', height: '100%' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>Strongest Topic</Typography>
+                          <Typography variant="subtitle1" fontWeight={700}>{weeklyIntel.strongest_topic?.pdf_name || 'N/A'}</Typography>
+                          <Typography variant="h5" fontWeight={700} color="success.main">
+                            {Math.round(weeklyIntel.strongest_topic?.mastery || 0)}% mastery
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <Card variant="outlined" sx={{ borderLeft: 3, borderLeftColor: 'warning.main', height: '100%' }}>
+                        <CardContent>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>Weakest Topic</Typography>
+                          <Typography variant="subtitle1" fontWeight={700}>{weeklyIntel.weakest_topic?.pdf_name || 'N/A'}</Typography>
+                          <Typography variant="h5" fontWeight={700} color="warning.main">
+                            {Math.round(weeklyIntel.weakest_topic?.mastery || 0)}% mastery
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+
+                  {/* Activity Heatmap */}
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom fontWeight={600}>
+                    Study Activity Heatmap
+                  </Typography>
+                  <Stack direction="row" spacing={1.5} justifyContent="center" sx={{ mb: 3 }}>
+                    {weeklyIntel.heatmap?.map((d) => {
+                      const intensity = d.count === 0 ? 0 : Math.min(d.count / Math.max(...weeklyIntel.heatmap.map((h) => h.count), 1), 1);
+                      const bg = d.count === 0 ? 'rgba(255,255,255,0.03)' : `rgba(16,185,129,${0.15 + intensity * 0.7})`;
+                      return (
+                        <Box key={d.day} sx={{ textAlign: 'center' }}>
+                          <Typography variant="caption" sx={{ display: 'block', mb: 0.5, opacity: 0.5, fontSize: '0.6rem' }}>
+                            {d.day.charAt(0).toUpperCase() + d.day.slice(1, 3)}
+                          </Typography>
+                          <Box
+                            sx={{
+                              width: 40, height: 40, borderRadius: 1.5, bgcolor: bg,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              border: d.count > 0 ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(255,255,255,0.05)',
+                            }}
+                          >
+                            <Typography variant="caption" fontWeight={700} sx={{ color: d.count > 0 ? '#10B981' : 'text.disabled', fontSize: '0.65rem' }}>
+                              {d.count}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+
+                  {/* Activity breakdown */}
+                  {Object.keys(weeklyIntel.activity_breakdown || {}).length > 0 && (
+                    <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap" useFlexGap>
+                      {Object.entries(weeklyIntel.activity_breakdown).map(([type, count]) => (
+                        <Chip key={type} label={`${type}: ${count}`} size="small" variant="outlined" sx={{ opacity: 0.7 }} />
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
+              </Collapse>
             </Paper>
           )}
         </>
