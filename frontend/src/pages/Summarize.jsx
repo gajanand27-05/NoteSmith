@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -17,7 +18,8 @@ import PdfSelector from '../components/shared/PdfSelector';
 import { getSummary } from '../api';
 
 const Summarize = () => {
-  const [pdfId, setPdfId] = useState('');
+  const location = useLocation();
+  const [pdfId, setPdfId] = useState(location.state?.pdfId || '');
   const [length, setLength] = useState('medium');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);

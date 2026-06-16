@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -21,7 +22,8 @@ import PdfSelector from '../components/shared/PdfSelector';
 import { generateQuiz } from '../api';
 
 const Quiz = () => {
-  const [pdfId, setPdfId] = useState('');
+  const location = useLocation();
+  const [pdfId, setPdfId] = useState(location.state?.pdfId || '');
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);

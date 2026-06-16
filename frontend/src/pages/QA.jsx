@@ -6,12 +6,15 @@ import {
 import {
   Send as SendIcon, Person as PersonIcon, SmartToy as RobotIcon,
   ContentCopy as CopyIcon, Refresh as RegenerateIcon,
+  AutoStories as FlashcardsIcon, Quiz as QuizIcon,
+  Description as SummarizeIcon,
   ExpandMore as ExpandIcon, ExpandLess as CollapseIcon,
 } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useNavigate } from 'react-router-dom';
 import PdfSelector from '../components/shared/PdfSelector';
 import { askQuestionStream } from '../api';
 
@@ -105,7 +108,7 @@ const SourcePanel = ({ sources }) => {
   );
 };
 
-const MessageActions = ({ msg, onCopy, onRegenerate }) => (
+const MessageActions = ({ msg, onCopy, onRegenerate, pdfId, navigate }) => (
   <Stack direction="row" spacing={0.5} sx={{ mt: 0.5, opacity: 0, transition: 'opacity 0.15s', '&:hover': { opacity: 1 } }}>
     <Tooltip title="Copy">
       <IconButton size="small" sx={{ color: 'text.disabled', fontSize: '0.7rem' }} onClick={() => onCopy(msg.content)}>
@@ -117,6 +120,25 @@ const MessageActions = ({ msg, onCopy, onRegenerate }) => (
         <RegenerateIcon sx={{ fontSize: 14 }} />
       </IconButton>
     </Tooltip>
+    {pdfId && (
+      <>
+        <Tooltip title="Create Flashcards">
+          <IconButton size="small" sx={{ color: 'text.disabled', fontSize: '0.7rem' }} onClick={() => navigate('/flashcards', { state: { pdfId } })}>
+            <FlashcardsIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Create Quiz">
+          <IconButton size="small" sx={{ color: 'text.disabled', fontSize: '0.7rem' }} onClick={() => navigate('/quiz', { state: { pdfId } })}>
+            <QuizIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Summarize">
+          <IconButton size="small" sx={{ color: 'text.disabled', fontSize: '0.7rem' }} onClick={() => navigate('/summarize', { state: { pdfId } })}>
+            <SummarizeIcon sx={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+      </>
+    )}
   </Stack>
 );
 
@@ -174,7 +196,7 @@ const MasteryChip = ({ mastery }) => {
   );
 };
 
-const MessageBubble = ({ msg, onCopy, onRegenerate }) => {
+const MessageBubble = ({ msg, onCopy, onRegenerate, pdfId, navigate }) => {
   const isUser = msg.role === 'user';
   const isStreaming = msg._streaming;
   const hasMastery = msg.mastery && msg.mastery.delta !== 0;
@@ -221,7 +243,7 @@ const MessageBubble = ({ msg, onCopy, onRegenerate }) => {
           {time && <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.disabled' }}>{time}</Typography>}
           {hasMastery && <MasteryChip mastery={msg.mastery} />}
           <Box sx={{ flex: 1 }} />
-          {!isUser && !isStreaming && <MessageActions msg={msg} onCopy={onCopy} onRegenerate={onRegenerate} />}
+          {!isUser && !isStreaming && <MessageActions msg={msg} onCopy={onCopy} onRegenerate={onRegenerate} pdfId={pdfId} navigate={navigate} />}
         </Stack>
         {!isUser && !isStreaming && <SourcePanel sources={msg.sources} />}
       </Box>
@@ -370,8 +392,10 @@ const QA = () => {
               <MessageBubble
                 key={idx}
                 msg={msg}
+                pdfId={pdfId}
                 onCopy={handleCopy}
                 onRegenerate={() => handleRegenerate(msg)}
+                navigate={navigate}
               />
             ))}
           </>

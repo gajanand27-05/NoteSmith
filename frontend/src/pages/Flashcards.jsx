@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -23,7 +24,8 @@ import { generateFlashcards } from '../api';
 import './Flashcards.css';
 
 const Flashcards = () => {
-  const [pdfId, setPdfId] = useState('');
+  const location = useLocation();
+  const [pdfId, setPdfId] = useState(location.state?.pdfId || '');
   const [count, setCount] = useState(10);
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
