@@ -24,12 +24,21 @@ def init_db() -> None:
                 id TEXT PRIMARY KEY,
                 original_name TEXT NOT NULL,
                 stored_path TEXT NOT NULL,
-                page_count INTEGER NOT NULL,
+                page_count INTEGER DEFAULT 0,
                 chunk_count INTEGER DEFAULT 0,
                 char_count INTEGER DEFAULT 0,
+                processing_status TEXT NOT NULL DEFAULT 'uploaded',
+                error_message TEXT,
                 created_at TEXT NOT NULL
             )
         """)
+        # Migration: add processing_status and error_message if table was created without them
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(pdfs)").fetchall()]
+        if "processing_status" not in cols:
+            conn.execute("ALTER TABLE pdfs ADD COLUMN processing_status TEXT NOT NULL DEFAULT 'uploaded'")
+            conn.execute("UPDATE pdfs SET processing_status = 'indexed' WHERE processing_status = 'uploaded'")
+        if "error_message" not in cols:
+            conn.execute("ALTER TABLE pdfs ADD COLUMN error_message TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS mastery_events (
                 id TEXT PRIMARY KEY,
@@ -64,13 +73,20 @@ def init_db() -> None:
 
 # ─── PDF CRUD ────────────────────────────────────────────────────────────────
 
-def create_pdf(pdf_id: str, original_name: str, stored_path: str, page_count: int) -> dict:
+def create_pdf(
+    pdf_id: str,
+    original_name: str,
+    stored_path: str,
+    page_count: int = 0,
+    char_count: int = 0,
+    processing_status: str = "uploaded",
+) -> dict:
     created_at = datetime.utcnow().isoformat()
     with _connect() as conn:
         conn.execute(
-            "INSERT INTO pdfs (id, original_name, stored_path, page_count, created_at) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (pdf_id, original_name, stored_path, page_count, created_at),
+            "INSERT INTO pdfs (id, original_name, stored_path, page_count, char_count, processing_status, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (pdf_id, original_name, stored_path, page_count, char_count, processing_status, created_at),
         )
         conn.commit()
     row = get_pdf(pdf_id)
@@ -97,6 +113,15 @@ def update_pdf_stats(pdf_id: str, chunk_count: int, char_count: int) -> None:
         conn.execute(
             "UPDATE pdfs SET chunk_count = ?, char_count = ? WHERE id = ?",
             (chunk_count, char_count, pdf_id),
+        )
+        conn.commit()
+
+
+def update_pdf_status(pdf_id: str, status: str, error_message: str | None = None) -> None:
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE pdfs SET processing_status = ?, error_message = ? WHERE id = ?",
+            (status, error_message, pdf_id),
         )
         conn.commit()
 

@@ -10,6 +10,7 @@ export const healthCheck = () => api.get('/health');
 export const getOllamaStatus = () => api.get('/ollama/status');
 
 export const listPdfs = () => api.get('/pdfs');
+export const getPdf = (pdfId) => api.get(`/pdfs/${pdfId}`);
 export const uploadPdf = (file) => {
   const formData = new FormData();
   formData.append('file', file);

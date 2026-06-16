@@ -6,9 +6,11 @@ from pydantic import BaseModel, Field
 class PDFInfo(BaseModel):
     id: str
     original_name: str
-    page_count: int
+    page_count: int = 0
     chunk_count: int = 0
     char_count: int = 0
+    processing_status: str = "indexed"
+    error_message: str | None = None
     created_at: str
 
 

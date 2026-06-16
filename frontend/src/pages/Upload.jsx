@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box, Typography, Button, Paper, Grid, Stack, Chip, Card, CardContent,
-  LinearProgress, IconButton, Alert,
+  LinearProgress, IconButton, Alert, CircularProgress,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon, PictureAsPdf as PdfIcon, Delete as DeleteIcon,
-  Description as FileIcon, Close as CloseIcon,
+  Description as FileIcon, Close as CloseIcon, CheckCircle as CheckIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
-import { listPdfs, deletePdf, uploadPdfWithProgress, getMasterySummary } from '../api';
+import { listPdfs, deletePdf, getPdf, uploadPdfWithProgress, getMasterySummary } from '../api';
 import { enqueueSnackbar } from 'notistack';
 import ConfirmDialog from '../components/ConfirmDialog';
 import EmptyState from '../components/EmptyState';
@@ -16,6 +17,9 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const PROCESS_STEPS = ['uploaded', 'chunking', 'embedding', 'indexing'];
+const PROCESS_LABELS = { uploaded: 'Uploaded', chunking: 'Chunking', embedding: 'Embedding', indexing: 'Indexing' };
 
 const formatSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -43,11 +47,87 @@ const TrendBadge = ({ trend }) => {
   );
 };
 
+const ProcessingIndicator = ({ status, fileName, fileSize }) => {
+  const currentIdx = PROCESS_STEPS.indexOf(status);
+  return (
+    <Box sx={{ textAlign: 'center' }}>
+      <FileIcon sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+      <Typography variant="h6" fontWeight="600" mb={0.5}>{fileName}</Typography>
+      {fileSize > 0 && (
+        <Typography variant="body2" color="text.secondary" mb={2}>{formatSize(fileSize)}</Typography>
+      )}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1, maxWidth: 280, mx: 'auto', mb: 1 }}>
+        {PROCESS_STEPS.map((step, i) => {
+          const isComplete = i < currentIdx;
+          const isActive = i === currentIdx;
+          let icon;
+          let color;
+          if (isComplete) {
+            icon = <CheckIcon sx={{ fontSize: 18, color: '#10B981' }} />;
+            color = '#10B981';
+          } else if (isActive) {
+            icon = <CircularProgress size={16} thickness={6} sx={{ color: '#6366F1' }} />;
+            color = '#6366F1';
+          } else {
+            icon = <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid', borderColor: 'rgba(255,255,255,0.15)' }} />;
+            color = 'rgba(255,255,255,0.3)';
+          }
+          return (
+            <Stack key={step} direction="row" alignItems="center" spacing={1.5}>
+              {icon}
+              <Typography variant="body2" sx={{ color, fontWeight: isActive ? 700 : 400, transition: 'color 0.3s' }}>
+                {PROCESS_LABELS[step]}
+              </Typography>
+            </Stack>
+          );
+        })}
+      </Box>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+        Processing your document...
+      </Typography>
+    </Box>
+  );
+};
+
+const StatusChip = ({ status, errorMessage }) => {
+  const color = status === 'indexed' ? '#10B981' : status === 'failed' ? '#EF4444' : '#FBBF24';
+  const label = status === 'indexed' ? 'Indexed' : status === 'failed' ? 'Failed' : status.charAt(0).toUpperCase() + status.slice(1);
+  const icon = status === 'indexed'
+    ? <CheckIcon sx={{ fontSize: 14 }} />
+    : status === 'failed'
+      ? <ErrorIcon sx={{ fontSize: 14 }} />
+      : <CircularProgress size={12} thickness={6} sx={{ color: '#FBBF24' }} />;
+  return (
+    <Box>
+      <Chip
+        icon={icon}
+        label={label}
+        size="small"
+        sx={{
+          color, borderColor: color,
+          fontWeight: 600, fontSize: '0.65rem',
+          '& .MuiChip-icon': { ml: 0.5 },
+        }}
+        variant="outlined"
+      />
+      {status === 'failed' && errorMessage && (
+        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5, fontSize: '0.6rem', lineHeight: 1.2 }}>
+          {errorMessage}
+        </Typography>
+      )}
+    </Box>
+  );
+};
+
 const Upload = () => {
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingDocId, setProcessingDocId] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState(null);
+  const [processingFileName, setProcessingFileName] = useState('');
+  const [processingFileSize, setProcessingFileSize] = useState(0);
   const [pdfs, setPdfs] = useState([]);
   const [masteryMap, setMasteryMap] = useState({});
   const [loadingPdfs, setLoadingPdfs] = useState(true);
@@ -74,6 +154,43 @@ const Upload = () => {
 
   useEffect(() => { fetchPdfs(); }, [fetchPdfs]);
 
+  // Poll processing status
+  useEffect(() => {
+    if (!processingDocId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await getPdf(processingDocId);
+        const status = res.data.processing_status;
+        setProcessingStatus(status);
+        if (status === 'indexed') {
+          clearInterval(interval);
+          setProcessingDocId(null);
+          setProcessingStatus(null);
+          setUploadStatus('idle');
+          setFile(null);
+          setUploadProgress(0);
+          enqueueSnackbar(`${processingFileName} processed successfully`, { variant: 'success' });
+          setLoadingPdfs(true);
+          fetchPdfs();
+        } else if (status === 'failed') {
+          clearInterval(interval);
+          const errMsg = res.data.error_message || 'Processing failed';
+          setProcessingDocId(null);
+          setProcessingStatus(null);
+          setUploadStatus('idle');
+          setFile(null);
+          setUploadProgress(0);
+          enqueueSnackbar(`Processing failed: ${errMsg}`, { variant: 'error' });
+          setLoadingPdfs(true);
+          fetchPdfs();
+        }
+      } catch (e) {
+        console.error('Status poll failed', e);
+      }
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [processingDocId, processingFileName, fetchPdfs]);
+
   const validateFile = (f) => {
     if (!f) return 'No file selected';
     if (f.type && f.type !== 'application/pdf' && !f.name.endsWith('.pdf'))
@@ -96,13 +213,23 @@ const Upload = () => {
     setUploadProgress(0);
     setValidationError('');
     try {
-      await uploadPdfWithProgress(file, setUploadProgress);
-      setUploadStatus('idle');
-      setFile(null);
-      setUploadProgress(0);
-      enqueueSnackbar(`${file.name} uploaded successfully`, { variant: 'success' });
-      setLoadingPdfs(true);
-      await fetchPdfs();
+      const res = await uploadPdfWithProgress(file, setUploadProgress);
+      const pdfInfo = res.data.pdf;
+      const initialStatus = pdfInfo.processing_status;
+      if (initialStatus === 'indexed') {
+        setUploadStatus('idle');
+        setFile(null);
+        setUploadProgress(0);
+        enqueueSnackbar(`${file.name} uploaded successfully`, { variant: 'success' });
+        setLoadingPdfs(true);
+        fetchPdfs();
+      } else {
+        setUploadStatus('processing');
+        setProcessingDocId(pdfInfo.id);
+        setProcessingStatus(initialStatus);
+        setProcessingFileName(file.name);
+        setProcessingFileSize(file.size);
+      }
     } catch (error) {
       console.error("Upload failed", error);
       const msg = error.response?.data?.detail || error.message || 'Upload failed';
@@ -128,6 +255,8 @@ const Upload = () => {
   const handleDragLeave = () => setDragOver(false);
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); handleFileSelect(e.dataTransfer.files[0]); };
 
+  const isLocked = uploadStatus === 'uploading' || uploadStatus === 'processing';
+
   const totalPdfs = pdfs.length;
   const dropZoneContent = () => {
     if (uploadStatus === 'uploading') {
@@ -140,6 +269,15 @@ const Upload = () => {
             {formatSize(file?.size || 0)}
           </Typography>
         </Box>
+      );
+    }
+    if (uploadStatus === 'processing') {
+      return (
+        <ProcessingIndicator
+          status={processingStatus}
+          fileName={processingFileName}
+          fileSize={processingFileSize}
+        />
       );
     }
     if (file) {
@@ -196,13 +334,14 @@ const Upload = () => {
         sx={{
           p: 5, mb: validationError ? 1 : 4, textAlign: 'center',
           border: '2px dashed',
-          borderColor: validationError ? 'error.main' : dragOver ? 'primary.main' : 'rgba(255,255,255,0.15)',
-          bgcolor: dragOver ? 'rgba(99,102,241,0.05)' : 'transparent',
-          borderRadius: 3, cursor: 'pointer',
+          borderColor: validationError ? 'error.main' : dragOver ? 'primary.main' : isLocked ? 'rgba(99,102,241,0.3)' : 'rgba(255,255,255,0.15)',
+          bgcolor: isLocked ? 'rgba(99,102,241,0.03)' : dragOver ? 'rgba(99,102,241,0.05)' : 'transparent',
+          borderRadius: 3,
+          cursor: isLocked ? 'default' : 'pointer',
           transition: 'all 0.2s ease',
-          '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(99,102,241,0.03)' },
+          ...(isLocked ? {} : { '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(99,102,241,0.03)' } }),
         }}
-        onClick={() => !file && uploadStatus === 'idle' && inputRef.current?.click()}
+        onClick={() => !isLocked && !file && inputRef.current?.click()}
       >
         {dropZoneContent()}
       </Paper>
@@ -241,9 +380,18 @@ const Upload = () => {
               const score = mastery?.mastery_score ?? 0;
               const trend = mastery?.trend ?? 0;
               const color = score < 30 ? '#EF4444' : score < 50 ? '#F97316' : score < 65 ? '#FBBF24' : score < 80 ? '#34D399' : '#10B981';
+              const pStatus = pdf.processing_status;
+              const isIndexed = pStatus === 'indexed';
+              const isFailed = pStatus === 'failed';
               return (
                 <Grid item xs={12} sm={6} md={4} key={pdf.id}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 3, position: 'relative' }}>
+                  <Card sx={{
+                    height: '100%', display: 'flex', flexDirection: 'column',
+                    bgcolor: '#0F111A', border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: 3, position: 'relative',
+                    opacity: isIndexed ? 1 : 0.75,
+                    transition: 'opacity 0.3s',
+                  }}>
                     <CardContent sx={{ flex: 1, p: 2.5, '&:last-child': { pb: 2.5 } }}>
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1.5}>
                         <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -259,15 +407,33 @@ const Upload = () => {
                       </Typography>
 
                       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
-                        <Chip label={`${pdf.page_count} page${pdf.page_count !== 1 ? 's' : ''}`} size="small" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
-                        {pdf.chunk_count > 0 && <Chip label={`${pdf.chunk_count} chunks`} size="small" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />}
+                        {isIndexed || isFailed ? (
+                          <>
+                            {pdf.page_count > 0 && (
+                              <Chip label={`${pdf.page_count} page${pdf.page_count !== 1 ? 's' : ''}`} size="small" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                            )}
+                            {pdf.chunk_count > 0 && (
+                              <Chip label={`${pdf.chunk_count} chunks`} size="small" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                            )}
+                          </>
+                        ) : (
+                          <Chip label={`${pdf.page_count} pages`} size="small" variant="outlined" sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                        )}
                       </Stack>
 
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem' }}>
-                        Uploaded {formatDate(pdf.created_at)}
-                      </Typography>
+                      {isFailed && <StatusChip status={pStatus} errorMessage={pdf.error_message} />}
 
-                      {mastery && (
+                      {isIndexed && (
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontSize: '0.65rem' }}>
+                          Uploaded {formatDate(pdf.created_at)}
+                        </Typography>
+                      )}
+
+                      {!isIndexed && !isFailed && (
+                        <StatusChip status={pStatus} />
+                      )}
+
+                      {isIndexed && mastery && (
                         <Box>
                           <Box display="flex" justifyContent="space-between" alignItems="center" mb={0.5}>
                             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>Mastery</Typography>

@@ -1,17 +1,19 @@
+import logging
 import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, UploadFile
 
 from app.config import settings
 from app.core.chunker import chunk_text
 from app.core.embeddings import embed_texts
-from app.core.llm import llm
 from app.core.pdf_processor import PDFProcessor
 from app.core.vector_store import vector_store
 from app.db import database
 from app.models.schemas import PDFInfo, UploadResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -23,23 +25,45 @@ def _to_info(row: dict) -> PDFInfo:
     return PDFInfo(
         id=row["id"],
         original_name=row["original_name"],
-        page_count=row["page_count"],
+        page_count=row.get("page_count", 0),
         chunk_count=row.get("chunk_count", 0),
         char_count=row.get("char_count", 0),
+        processing_status=row.get("processing_status", "uploaded"),
+        error_message=row.get("error_message"),
         created_at=row["created_at"],
     )
 
 
+def _process_and_index(pdf_id: str, text: str) -> None:
+    """Background task: chunk, embed, and index a PDF."""
+    try:
+        database.update_pdf_status(pdf_id, "chunking")
+        chunks = chunk_text(text)
+
+        database.update_pdf_status(pdf_id, "embedding")
+        chunk_embeddings = embed_texts(chunks)
+
+        database.update_pdf_status(pdf_id, "indexing")
+        vector_store.add_chunks(pdf_id, chunks, embeddings=chunk_embeddings)
+
+        database.update_pdf_stats(pdf_id, len(chunks), len(text))
+        database.update_pdf_status(pdf_id, "indexed")
+    except Exception as e:
+        logger.exception("Background processing failed for pdf %s", pdf_id)
+        database.update_pdf_status(pdf_id, "failed", error_message=str(e))
+
+
 @router.post("/upload", response_model=UploadResponse)
-async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
+async def upload_pdf(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
+    sync: bool = Query(False, description="Process synchronously (for tests)"),
+) -> UploadResponse:
     if not file.filename:
         raise HTTPException(400, "No filename provided")
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(400, f"Unsupported file type: {ext}. Only PDF allowed.")
-
-    if not llm.is_available():
-        raise HTTPException(503, "Ollama is not running. Start it with `ollama serve`.")
 
     contents = await file.read()
     if not contents:
@@ -57,6 +81,7 @@ async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
     async with aiofiles.open(stored_path, "wb") as out:
         await out.write(contents)
 
+    # Extract text synchronously (fast) to validate the PDF
     try:
         text = PDFProcessor.extract_text(stored_path)
         pages = PDFProcessor.page_count(stored_path)
@@ -70,23 +95,34 @@ async def upload_pdf(file: UploadFile = File(...)) -> UploadResponse:
             400, "PDF contains no extractable text (scanned/image-only PDF)."
         )
 
-    chunks = chunk_text(text)
-    chunk_embeddings = embed_texts(chunks)
-    try:
-        vector_store.add_chunks(pdf_id, chunks, embeddings=chunk_embeddings)
-    except Exception as e:
+    # Validate basic content
+    if pages == 0:
         stored_path.unlink(missing_ok=True)
-        vector_store.delete_pdf(pdf_id)
-        raise HTTPException(500, f"Failed to index PDF: {e}")
+        raise HTTPException(400, "PDF has no pages.")
 
-    database.create_pdf(pdf_id, file.filename, str(stored_path), pages)
-    database.update_pdf_stats(pdf_id, len(chunks), len(text))
+    database.create_pdf(
+        pdf_id, file.filename, str(stored_path),
+        page_count=pages, char_count=len(text),
+        processing_status="uploaded",
+    )
+
+    if sync:
+        _process_and_index(pdf_id, text)
+        record = database.get_pdf(pdf_id)
+        assert record is not None
+        return UploadResponse(
+            pdf=_to_info(record),
+            message=f"Uploaded, extracted {pages} pages, indexed {record['chunk_count']} chunks",
+        )
+
+    # Launch background processing
+    background_tasks.add_task(_process_and_index, pdf_id, text)
+
     record = database.get_pdf(pdf_id)
     assert record is not None
-
     return UploadResponse(
         pdf=_to_info(record),
-        message=f"Uploaded, extracted {pages} pages, indexed {len(chunks)} chunks",
+        message=f"Upload started — queued for processing ({pages} pages, {len(text)} chars)",
     )
 
 
