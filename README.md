@@ -75,160 +75,13 @@
 
 ## ⚙️ System Flow
 
-```
-                            ┌──────────────┐
-                            │   📤 USER    │
-                            │  Uploads PDF │
-                            └──────┬───────┘
-                                   │
-                            ┌──────▼───────┐
-                            │   📖 PyPDF   │
-                            │  Extract     │
-                            │  Text        │
-                            └──────┬───────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-             ┌──────▼──────┐             ┌───────▼────────┐
-             │  ✂️ Chunker  │             │  📊 Status DB  │
-             │ (1000/200)  │             │  (SQLite)      │
-             └──────┬──────┘             └───────┬────────┘
-                    │                            │
-             ┌──────▼──────┐                     │
-             │  🧮 nomic-  │                     │
-             │  embed-text │                     │
-             └──────┬──────┘                     │
-                    │                            │
-             ┌──────▼──────────┐                 │
-             │  🗄️ ChromaDB    │                 │
-             │  Vector Store   │                 │
-             │  (cosine space) │                 │
-             └──────┬──────────┘                 │
-                    │                            │
-                    └──────────┬─────────────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   👤 USER INTERACTS │
-                    │   (React Frontend)  │
-                    └──────────┬──────────┘
-                               │
-            ┌──────────────────┴──────────────────┐
-            │                                     │
-     ┌──────▼────────┐                  ┌─────────▼────────┐
-     │  🔍 RAG Query │                  │  📚 Other Tasks   │
-     │  (retrieve    │                  │  Summarize        │
-     │   + LLM)      │                  │  Quiz Generation  │
-     └──────┬────────┘                  │  Flashcard Gen    │
-            │                           │  Tutor Explain    │
-            │                           │  Paper Analyzer   │
-            │                           │  Mastery Compute  │
-            │                           └─────────┬────────┘
-            │                                     │
-            └────────────────┬────────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  🤖 LLM CORE   │
-                    │                 │
-                    │  ┌───────────┐  │
-                     │  │  🌐 OpenRouter │  │  ← Try first
-                     │  │  gpt-oss-120b  │  │
-                     │  └──────┬───────┘  │
-                     │         │ fail     │
-                     │  ┌──────▼───────┐  │
-                     │  │  🦙 Ollama   │  │  ← Fallback
-                     │  │  gemma4:12b  │  │
-                     │  └──────────────┘  │
-                    └────────┬────────┘
-                             │
-                    ┌────────▼────────┐
-                    │  ✅ RESPONSE   │
-                    │  to User       │
-                    └─────────────────┘
-```
+<img src="resources/flow-system.png" alt="System Flow" width="90%" style="border-radius:12px;"/>
 
 ---
 
 ## 🏗️ Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────────────────┐
-│                             🌐 FRONTEND (React 19 + Vite)                           │
-│                                                                                      │
-│  ┌─────────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────────┐  │
-│  │  Dashboard  │  │  Upload   │  │  Q&A      │  │  Quiz     │  │  Flashcards   │  │
-│  │  Streaks    │  │  DragDrop  │  │  SSE      │  │  MCQ      │  │  Active       │  │
-│  │  Mastery    │  │  Progress │  │  Stream   │  │  Engine   │  │  Recall       │  │
-│  └─────────────┘  └───────────┘  └───────────┘  └───────────┘  └───────────────┘  │
-│  ┌─────────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐                     │
-│  │  AI Tutor   │  │  Paper    │  │  Study    │  │  Reports  │                     │
-│  │  6 Levels   │  │  Analyzer │  │  Loop     │  │  Mastery  │                     │
-│  │  Follow-ups │  │  Predict  │  │  Spaced   │  │  Weekly   │                     │
-│  └─────────────┘  └───────────┘  └───────────┘  └───────────┘                     │
-│                                                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
-│  │  Shared Layer: MUI v9 Theme (🌙/☀️), Command Palette (Ctrl+K), Axios,       │  │
-│  │  React Router v7, Keyboard Shortcuts (G D, G U, G Q...), Error Boundaries  │  │
-│  └──────────────────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────┬───────────────────────────────────────────────────┘
-                                 │  REST + SSE (streaming)
-                                 │
-┌────────────────────────────────▼───────────────────────────────────────────────────┐
-│                            ⚙️ BACKEND (FastAPI + Uvicorn)                           │
-│                                                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
-│  │                              API ROUTES                                      │  │
-│  │  /api/pdfs  /api/qa  /api/quiz  /api/flashcards  /api/questions              │  │
-│  │  /api/tutor /api/papers /api/mastery /api/loop /api/intel                    │  │
-│  │  /api/summarize /api/reports /api/study-plan /api/dashboard                  │  │
-│  └──────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                      │
-│  ┌────────────────────────────┬──────────────────────────┬──────────────────────┐  │
-│  │        SERVICES            │         CORE             │        DB            │  │
-│  │                           │                          │                      │  │
- │  │  summarizer.py            │  llm.py (OpenRouter→Ollama)│  database.py         │  │
-│  │  quiz_gen.py              │  chunker.py              │  (SQLite)            │  │
-│  │  flashcard_gen.py         │  embeddings.py           │                      │  │
-│  │  question_gen.py          │  pdf_processor.py        │  supabase.py         │  │
-│  │  paper_analyzer.py        │  vector_store.py         │  (PostgreSQL opt.)   │  │
-│  │  mastery.py               │  retriever.py            │                      │  │
-│  │  learning_loop.py         │  rag_pipeline.py         │                      │  │
-│  │  dashboard.py             │                          │                      │  │
-│  │  weekly_intel.py          │                          │                      │  │
-│  │  report_gen.py            │                          │                      │  │
-│  │  study_plan.py            │                          │                      │  │
-│  │  tutor.py                 │                          │                      │  │
-│  └────────────────────────────┴──────────────────────────┴──────────────────────┘  │
-│                                                                                      │
-│  ┌──────────────────────────────────────────────────────────────────────────────┐  │
-│  │  Config: pydantic-settings (.env) | Models: Pydantic v2 (BaseModel)         │  │
-│  └──────────────────────────────────────────────────────────────────────────────┘  │
-└────────┬──────────────────────────────────────────┬─────────────────────────────────┘
-         │                                          │
-         │                                          │
-┌────────▼────────────────┐    ┌───────────────────▼──────────────────┐
-│    🤖 AI LAYER          │    │      💾 STORAGE LAYER               │
-│                         │    │                                      │
-│  ┌────────────────────┐  │    │  ┌───────────────────────────────┐  │
-│  │  🌐 OpenRouter     │  │    │  │  SQLite (notesmith.db)       │  │
-│  │  (gpt-oss-120b)    │  │    │  │  ├─ pdfs table               │  │
-│  │  ↓ fallback →      │  │    │  │  ├─ mastery_events table     │  │
-│  │  🦙 Ollama Local   │  │    │  │  └─ mastery_scores table     │  │
-│  │  (gemma4:12b)      │  │    │  └───────────────────────────────┘  │
-│  │  (nomic-embed-text)│  │    │                                      │
-│  └────────────────────┘  │    │  ┌───────────────────────────────┐  │
-│                         │    │  │  ChromaDB (PersistentClient)  │  │
-│                         │    │  │  ├─ Cosine similarity space   │  │
-│                         │    │  │  └─ HNSW indexing             │  │
-│                         │    │  └───────────────────────────────┘  │
-│                         │    │                                      │
-│                         │    │  ┌───────────────────────────────┐  │
-│                         │    │  │  Supabase (optional)          │  │
-│                         │    │  │  ├─ quiz_attempts table       │  │
-│                         │    │  │  ├─ flashcard_reviews table   │  │
-│                         │    │  │  └─ tutor_sessions table      │  │
-│                         │    │  └───────────────────────────────┘  │
-└─────────────────────────┘    └──────────────────────────────────────┘
-```
+<img src="resources/architecture.png" alt="Architecture" width="100%" style="border-radius:12px;"/>
 
 ---
 
@@ -298,12 +151,7 @@ cd frontend && npm run dev
 
 ### 📄 PDF Upload & Processing Pipeline
 
-```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│ Uploaded │──► │ Chunking │──► │Embedding │──► │ Indexing │──► │  Done!   │
-│  (file)  │    │ (1000ch) │    │ (nomic)  │    │(ChromaDB)│    │  ✅      │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
-```
+<img src="resources/flow-pipeline.png" alt="Processing Pipeline" width="90%" style="border-radius:12px;"/>
 
 - 🎯 **Drag & drop** or click to upload — 50MB max
 - ⏱️ **Real-time progress** bar + processing step indicator
@@ -316,26 +164,7 @@ cd frontend && npm run dev
 
 ### 💬 Q&A with RAG (Retrieval-Augmented Generation)
 
-```
-  ┌─────────────┐
-  │ "What is X?" │
-  └──────┬──────┘
-         │
-  ┌──────▼──────┐
-  │  🔍 Retriever│  ← ChromaDB cosine search (top-k=5)
-  │  embed query │
-  └──────┬──────┘
-         │ returns 5 most relevant chunks
-  ┌──────▼──────┐
-  │  📝 LLM     │  ← OpenRouter → Ollama fallback
-  │  Generate   │  ← System: "Answer using ONLY these notes"
-  └──────┬──────┘
-         │ SSE stream (token by token)
-  ┌──────▼──────┐
-  │  ✅ Answer  │  + source citations with distance scores
-  │  + Sources  │  + mastery event recorded
-  └─────────────┘
-```
+<img src="resources/flow-rag.png" alt="RAG Flow" width="65%" style="border-radius:12px;"/>
 
 - ⚡ **SSE streaming** — tokens arrive in real-time (not waiting for full response)
 - 📎 **Source citations** — each answer shows which chunks it came from
@@ -346,14 +175,7 @@ cd frontend && npm run dev
 
 ### 🧠 AI Tutor — 6 Levels of Depth
 
-```
-                🧒 Kid        "Explain like I'm 5"
-                🏫 School     "Simple terms please"
-                📚 High School "I'm studying for finals"
-                🎓 College     "Give me the full picture"
-                🔧 Engineering "Technical deep-dive"
-                💼 Interview   "Make me job-ready"
-```
+<img src="resources/flow-tutor.png" alt="Tutor Levels" width="60%" style="border-radius:12px;"/>
 
 - 🔗 **Context-aware** — optionally use a PDF's content for grounded answers
 - 🔄 **Follow-up suggestions** — AI generates related questions to explore
