@@ -25,7 +25,7 @@
 
   <br/>
 
-  <img src="resources/Dashboard.png" alt="Dashboard" width="92%" style="border-radius:16px;border:2px solid rgba(255,255,255,0.1);box-shadow:0 24px 48px -12px rgba(0,0,0,0.5);"/>
+  <img src="resources/Dashboard2.png" alt="Dashboard" width="92%" style="border-radius:16px;border:2px solid rgba(255,255,255,0.1);box-shadow:0 24px 48px -12px rgba(0,0,0,0.5);"/>
 </div>
 
 <br/>
