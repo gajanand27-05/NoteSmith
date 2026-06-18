@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "nomic-embed-text"
     
     openrouter_api_key: str = ""
-    openrouter_chat_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    openrouter_chat_model: str = "openai/gpt-oss-120b:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
     chroma_persist_dir: str = "./data/chroma"

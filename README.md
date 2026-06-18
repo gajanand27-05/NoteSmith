@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/badge/MUI-9-007FFF?style=flat-square&logo=mui&logoColor=white"/>
     <img src="https://img.shields.io/badge/ChromaDB-0.4-FF6B35?style=flat-square"/>
     <img src="https://img.shields.io/badge/Ollama-gemma4:12b-EE4C2C?style=flat-square&logo=ollama&logoColor=white"/>
-    <img src="https://img.shields.io/badge/OpenRouter-gpt--4o-8E75B2?style=flat-square&logo=openai&logoColor=white"/>
+    <img src="https://img.shields.io/badge/OpenRouter-gpt--oss--120b-8E75B2?style=flat-square&logo=openai&logoColor=white"/>
     <img src="https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square"/>
     <img src="https://img.shields.io/badge/Status-Production_Ready-success?style=flat-square"/>
   </div>
@@ -131,7 +131,7 @@
                     │                 │
                     │  ┌───────────┐  │
                      │  │  🌐 OpenRouter │  │  ← Try first
-                     │  │    gpt-4o     │  │
+                     │  │  gpt-oss-120b  │  │
                      │  └──────┬───────┘  │
                      │         │ fail     │
                      │  ┌──────▼───────┐  │
@@ -210,7 +210,7 @@
 │                         │    │                                      │
 │  ┌────────────────────┐  │    │  ┌───────────────────────────────┐  │
 │  │  🌐 OpenRouter     │  │    │  │  SQLite (notesmith.db)       │  │
-│  │  (gpt-4o)          │  │    │  │  ├─ pdfs table               │  │
+│  │  (gpt-oss-120b)    │  │    │  │  ├─ pdfs table               │  │
 │  │  ↓ fallback →      │  │    │  │  ├─ mastery_events table     │  │
 │  │  🦙 Ollama Local   │  │    │  │  └─ mastery_scores table     │  │
 │  │  (gemma4:12b)      │  │    │  └───────────────────────────────┘  │
@@ -480,7 +480,7 @@ pytest tests/test_question_gen.py -v
 | **⚙️ Backend** | FastAPI 0.110 + Uvicorn | Async Python REST API with auto-generated OpenAPI docs |
 | **✅ Validation** | Pydantic v2 | Request/response schemas with strict typing |
 | **🤖 Primary AI** | Ollama — gemma4:12b | Local LLM, no data leaves your machine |
-| **☁️ Cloud AI** | OpenRouter (gpt-4o) | Auto-fallback when Ollama unavailable |
+| **☁️ Cloud AI** | OpenRouter (gpt-oss-120b) | Auto-fallback when Ollama unavailable |
 | **🧮 Embeddings** | nomic-embed-text (via Ollama) | 768-dim vectors for semantic search |
 | **🗄️ Vector DB** | ChromaDB (PersistentClient) | Cosine similarity, HNSW indexing, persistent on disk |
 | **💾 DB** | SQLite | Mastery tracking, PDF metadata, event store |
