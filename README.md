@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/badge/MUI-9-007FFF?style=flat-square&logo=mui&logoColor=white"/>
     <img src="https://img.shields.io/badge/ChromaDB-0.4-FF6B35?style=flat-square"/>
     <img src="https://img.shields.io/badge/Ollama-gemma4:12b-EE4C2C?style=flat-square&logo=ollama&logoColor=white"/>
-    <img src="https://img.shields.io/badge/Gemini-2.5_Flash-8E75B2?style=flat-square&logo=google&logoColor=white"/>
+    <img src="https://img.shields.io/badge/OpenRouter-gpt--4o-8E75B2?style=flat-square&logo=openai&logoColor=white"/>
     <img src="https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square"/>
     <img src="https://img.shields.io/badge/Status-Production_Ready-success?style=flat-square"/>
   </div>
@@ -130,14 +130,14 @@
                     │  🤖 LLM CORE   │
                     │                 │
                     │  ┌───────────┐  │
-                    │  │  🌤️ Gemini │  │  ← Try first
-                    │  │  2.5 Flash │  │
-                    │  └─────┬─────┘  │
-                    │        │ fail   │
-                    │  ┌─────▼─────┐  │
-                    │  │  🦙 Ollama │  │  ← Fallback
-                    │  │ gemma4:12b│  │
-                    │  └───────────┘  │
+                     │  │  🌐 OpenRouter │  │  ← Try first
+                     │  │    gpt-4o     │  │
+                     │  └──────┬───────┘  │
+                     │         │ fail     │
+                     │  ┌──────▼───────┐  │
+                     │  │  🦙 Ollama   │  │  ← Fallback
+                     │  │  gemma4:12b  │  │
+                     │  └──────────────┘  │
                     └────────┬────────┘
                              │
                     ┌────────▼────────┐
@@ -185,7 +185,7 @@
 │  ┌────────────────────────────┬──────────────────────────┬──────────────────────┐  │
 │  │        SERVICES            │         CORE             │        DB            │  │
 │  │                           │                          │                      │  │
-│  │  summarizer.py            │  llm.py (Gemini→Ollama)  │  database.py         │  │
+ │  │  summarizer.py            │  llm.py (OpenRouter→Ollama)│  database.py         │  │
 │  │  quiz_gen.py              │  chunker.py              │  (SQLite)            │  │
 │  │  flashcard_gen.py         │  embeddings.py           │                      │  │
 │  │  question_gen.py          │  pdf_processor.py        │  supabase.py         │  │
@@ -208,14 +208,14 @@
 ┌────────▼────────────────┐    ┌───────────────────▼──────────────────┐
 │    🤖 AI LAYER          │    │      💾 STORAGE LAYER               │
 │                         │    │                                      │
-│  ┌───────────────────┐  │    │  ┌───────────────────────────────┐  │
-│  │  🌤️ Gemini Cloud  │  │    │  │  SQLite (notesmith.db)       │  │
-│  │  (gemini-2.5-flash)│  │    │  │  ├─ pdfs table               │  │
+│  ┌────────────────────┐  │    │  ┌───────────────────────────────┐  │
+│  │  🌐 OpenRouter     │  │    │  │  SQLite (notesmith.db)       │  │
+│  │  (gpt-4o)          │  │    │  │  ├─ pdfs table               │  │
 │  │  ↓ fallback →      │  │    │  │  ├─ mastery_events table     │  │
 │  │  🦙 Ollama Local   │  │    │  │  └─ mastery_scores table     │  │
 │  │  (gemma4:12b)      │  │    │  └───────────────────────────────┘  │
 │  │  (nomic-embed-text)│  │    │                                      │
-│  └───────────────────┘  │    │  ┌───────────────────────────────┐  │
+│  └────────────────────┘  │    │  ┌───────────────────────────────┐  │
 │                         │    │  │  ChromaDB (PersistentClient)  │  │
 │                         │    │  │  ├─ Cosine similarity space   │  │
 │                         │    │  │  └─ HNSW indexing             │  │
@@ -327,7 +327,7 @@ cd frontend && npm run dev
   └──────┬──────┘
          │ returns 5 most relevant chunks
   ┌──────▼──────┐
-  │  📝 LLM     │  ← Gemini → Ollama fallback
+  │  📝 LLM     │  ← OpenRouter → Ollama fallback
   │  Generate   │  ← System: "Answer using ONLY these notes"
   └──────┬──────┘
          │ SSE stream (token by token)
@@ -340,7 +340,7 @@ cd frontend && npm run dev
 - ⚡ **SSE streaming** — tokens arrive in real-time (not waiting for full response)
 - 📎 **Source citations** — each answer shows which chunks it came from
 - 🎯 **Mastery integration** — every Q&A updates your mastery score
-- 🤖 **Auto-fallback** — Gemini first, Ollama if quota exceeded
+- 🤖 **Auto-fallback** — OpenRouter first, Ollama if unavailable
 
 ---
 
@@ -480,7 +480,7 @@ pytest tests/test_question_gen.py -v
 | **⚙️ Backend** | FastAPI 0.110 + Uvicorn | Async Python REST API with auto-generated OpenAPI docs |
 | **✅ Validation** | Pydantic v2 | Request/response schemas with strict typing |
 | **🤖 Primary AI** | Ollama — gemma4:12b | Local LLM, no data leaves your machine |
-| **☁️ Cloud AI** | Google Gemini 2.5 Flash | Auto-fallback when Ollama unavailable |
+| **☁️ Cloud AI** | OpenRouter (gpt-4o) | Auto-fallback when Ollama unavailable |
 | **🧮 Embeddings** | nomic-embed-text (via Ollama) | 768-dim vectors for semantic search |
 | **🗄️ Vector DB** | ChromaDB (PersistentClient) | Cosine similarity, HNSW indexing, persistent on disk |
 | **💾 DB** | SQLite | Mastery tracking, PDF metadata, event store |

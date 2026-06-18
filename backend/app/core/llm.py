@@ -1,8 +1,9 @@
+import json
 from collections.abc import AsyncGenerator
 from typing import Any
 
+import httpx
 import ollama
-from google import genai as google_genai
 
 from app.config import settings
 
@@ -20,18 +21,71 @@ class LLMClient:
         self._client = ollama.Client(host=self.base_url)
         self._async_client = ollama.AsyncClient(host=self.base_url)
 
-        self.gemini_key = settings.gemini_api_key
-        self.gemini_chat_model = settings.gemini_chat_model
+        self.openrouter_api_key = settings.openrouter_api_key
+        self.openrouter_chat_model = settings.openrouter_chat_model
+        self.openrouter_base_url = settings.openrouter_base_url
 
-        self._cloud_client = None
-        self._cloud_model = None
+        self._cloud_headers = None
+        if self.openrouter_api_key:
+            self._cloud_headers = {
+                "Authorization": f"Bearer {self.openrouter_api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:8000",
+                "X-Title": "NoteSmith",
+            }
 
-        if self.gemini_key:
-            self._cloud_client = google_genai.Client(api_key=self.gemini_key)
-            self._cloud_model = self.gemini_chat_model
+    def _cloud_available(self) -> bool:
+        return self._cloud_headers is not None
+
+    def _openrouter_chat(self, messages: list[dict], stream: bool = False) -> dict:
+        body = {
+            "model": self.openrouter_chat_model,
+            "messages": messages,
+            "stream": stream,
+        }
+        with httpx.Client() as client:
+            resp = client.post(
+                f"{self.openrouter_base_url}/chat/completions",
+                headers=self._cloud_headers,
+                json=body,
+                timeout=120,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+    async def _openrouter_chat_stream(
+        self, messages: list[dict]
+    ) -> AsyncGenerator[str, None]:
+        body = {
+            "model": self.openrouter_chat_model,
+            "messages": messages,
+            "stream": True,
+        }
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{self.openrouter_base_url}/chat/completions",
+                headers=self._cloud_headers,
+                json=body,
+                timeout=120,
+            ) as resp:
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
 
     def is_available(self) -> bool:
-        if self._cloud_client:
+        if self._cloud_available():
             return True
         try:
             self._client.list()
@@ -41,8 +95,8 @@ class LLMClient:
 
     def list_models(self) -> list[str]:
         models = []
-        if self._cloud_client:
-            models.append(self._cloud_model)
+        if self._cloud_available():
+            models.append(f"openrouter:{self.openrouter_chat_model}")
         try:
             response = self._client.list()
             for m in getattr(response, "models", []) or []:
@@ -56,13 +110,9 @@ class LLMClient:
         return models
 
     def has_model(self, model: str) -> bool:
-        if self._cloud_client:
-            return True
         return any(model in name for name in self.list_models())
 
     def chat(self, messages: list[dict[str, str]], stream: bool = False) -> Any:
-        if self._cloud_client:
-            raise NotImplementedError("Raw chat not supported with cloud models in this wrapper")
         return self._client.chat(
             model=self.chat_model,
             messages=messages,
@@ -70,8 +120,6 @@ class LLMClient:
         )
 
     def generate(self, prompt: str, stream: bool = False) -> Any:
-        if self._cloud_client:
-            raise NotImplementedError("Raw generate not supported with cloud models in this wrapper")
         return self._client.generate(
             model=self.chat_model,
             prompt=prompt,
@@ -79,13 +127,12 @@ class LLMClient:
         )
 
     def generate_text(self, prompt: str) -> str:
-        if self._cloud_client:
+        if self._cloud_available():
             try:
-                response = self._cloud_client.models.generate_content(
-                    model=self._cloud_model,
-                    contents=prompt,
+                resp = self._openrouter_chat(
+                    [{"role": "user", "content": prompt}]
                 )
-                return (response.text or "").strip()
+                return (resp["choices"][0]["message"]["content"] or "").strip()
             except Exception:
                 pass
 
@@ -96,16 +143,10 @@ class LLMClient:
         return (text or "").strip()
 
     async def chat_stream(self, messages: list[dict[str, str]]) -> AsyncGenerator[str, None]:
-        if self._cloud_client:
+        if self._cloud_available():
             try:
-                prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-                response = self._cloud_client.models.generate_content_stream(
-                    model=self._cloud_model,
-                    contents=prompt,
-                )
-                for chunk in response:
-                    if chunk.text:
-                        yield chunk.text
+                async for token in self._openrouter_chat_stream(messages):
+                    yield token
                 return
             except Exception:
                 pass
@@ -121,14 +162,10 @@ class LLMClient:
                 yield content
 
     def chat_text(self, messages: list[dict[str, str]]) -> str:
-        if self._cloud_client:
+        if self._cloud_available():
             try:
-                prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages)
-                response = self._cloud_client.models.generate_content(
-                    model=self._cloud_model,
-                    contents=prompt,
-                )
-                return (response.text or "").strip()
+                resp = self._openrouter_chat(messages)
+                return (resp["choices"][0]["message"]["content"] or "").strip()
             except Exception:
                 pass
 

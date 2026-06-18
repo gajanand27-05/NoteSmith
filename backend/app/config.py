@@ -16,8 +16,9 @@ class Settings(BaseSettings):
     ollama_chat_model: str = "gemma4:12b"
     ollama_embed_model: str = "nomic-embed-text"
     
-    gemini_api_key: str = ""
-    gemini_chat_model: str = "gemini-2.5-flash"
+    openrouter_api_key: str = ""
+    openrouter_chat_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
     chroma_persist_dir: str = "./data/chroma"
     upload_dir: str = "./data/uploads"

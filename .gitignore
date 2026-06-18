@@ -36,6 +36,7 @@ data/chroma/*
 
 *.log
 logs/
+_dbg*
 
 .pytest_cache/
 .coverage
