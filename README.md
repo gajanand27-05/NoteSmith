@@ -75,13 +75,58 @@
 
 ## ⚙️ System Flow
 
-<img src="resources/flow-system.png" alt="System Flow" width="90%" style="border-radius:12px;"/>
+```mermaid
+flowchart TD
+    PDF["📤 User Uploads PDF"] --> PyPDF["📖 PyPDF Extract Text"]
+    PyPDF --> Chunker["✂️ Chunker (1000/200)"]
+    Chunker --> Embed["🧮 nomic-embed-text"]
+    Embed --> ChromaDB["🗄️ ChromaDB Vector Store"]
+    ChromaDB --> React["👤 User (React Frontend)"]
+    React --> RAG["🔍 RAG Query (retrieve + LLM)"]
+    React --> Tasks["📚 Other Tasks<br/>Summarize · Quiz · Flashcards<br/>Tutor · Analyzer · Mastery"]
+    RAG --> OR["🌐 OpenRouter<br/>(gpt-oss-120b)"]
+    Tasks --> OR
+    OR -. fail .-> Ollama["🦙 Ollama<br/>(gemma4:12b)"]
+    OR --> Response["✅ Response to User"]
+    Ollama --> Response
+```
 
 ---
 
 ## 🏗️ Architecture
 
-<img src="resources/architecture.png" alt="Architecture" width="100%" style="border-radius:12px;"/>
+```mermaid
+flowchart TB
+    subgraph Frontend["🌐 FRONTEND (React 19 + Vite)"]
+        D1["📊 Dashboard"] --- D2["📁 Upload"] --- D3["💬 Q&A"] --- D4["📝 Quiz"] --- D5["🃏 Flashcards"]
+        D6["🧠 AI Tutor"] --- D7["📈 Analyzer"] --- D8["🔄 Study Loop"] --- D9["📑 Reports"]
+    end
+
+    subgraph Backend["⚙️ BACKEND (FastAPI + Uvicorn)"]
+        direction LR
+        Routes["📡 API Routes<br/>/api/pdfs · /api/qa · /api/quiz · /api/flashcards<br/>/api/tutor · /api/papers · /api/mastery · /api/loop<br/>/api/summarize · /api/reports · /api/dashboard"]
+        Services["📂 SERVICES<br/>summarizer · quiz_gen · flashcard_gen<br/>question_gen · paper_analyzer · mastery<br/>learning_loop · dashboard · tutor · report_gen"]
+        Core["⚙️ CORE<br/>llm.py · chunker.py · embeddings.py<br/>pdf_processor.py · vector_store.py<br/>retriever.py · rag_pipeline.py"]
+        DBLayer["💾 DB<br/>database.py (SQLite)<br/>supabase.py (PG opt.)"]
+        Routes --> Services --> Core --> DBLayer
+    end
+
+    subgraph AI["🤖 AI LAYER"]
+        OR["🌐 OpenRouter (gpt-oss-120b)"]
+        Ollama["🦙 Ollama (gemma4:12b)"]
+        Nomic["🧮 nomic-embed-text"]
+    end
+
+    subgraph Storage["💾 STORAGE LAYER"]
+        SQLite["🗄️ SQLite (notesmith.db)"]
+        Chroma["🗄️ ChromaDB (vector store)"]
+        Supabase["☁️ Supabase (optional PG)"]
+    end
+
+    Frontend -->|REST + SSE| Backend
+    Backend --> AI
+    Backend --> Storage
+```
 
 ---
 
@@ -151,7 +196,13 @@ cd frontend && npm run dev
 
 ### 📄 PDF Upload & Processing Pipeline
 
-<img src="resources/flow-pipeline.png" alt="Processing Pipeline" width="90%" style="border-radius:12px;"/>
+```mermaid
+flowchart LR
+    A["📤 Uploaded (file)"] --> B["✂️ Chunking (1000ch)"]
+    B --> C["🧮 Embedding (nomic)"]
+    C --> D["🗄️ Indexing (ChromaDB)"]
+    D --> E["✅ Done!"]
+```
 
 - 🎯 **Drag & drop** or click to upload — 50MB max
 - ⏱️ **Real-time progress** bar + processing step indicator
@@ -164,7 +215,12 @@ cd frontend && npm run dev
 
 ### 💬 Q&A with RAG (Retrieval-Augmented Generation)
 
-<img src="resources/flow-rag.png" alt="RAG Flow" width="65%" style="border-radius:12px;"/>
+```mermaid
+flowchart TD
+    Q["❓ "What is X?""] --> Retriever["🔍 Retriever<br/>ChromaDB cosine search (top-k=5)"]
+    Retriever --> |5 most relevant chunks| LLM["📝 LLM<br/>OpenRouter → Ollama fallback<br/>System: Answer using ONLY these notes"]
+    LLM --> |SSE stream token by token| Answer["✅ Answer + Sources<br/>+ source citations with distance scores<br/>+ mastery event recorded"]
+```
 
 - ⚡ **SSE streaming** — tokens arrive in real-time (not waiting for full response)
 - 📎 **Source citations** — each answer shows which chunks it came from
@@ -175,7 +231,14 @@ cd frontend && npm run dev
 
 ### 🧠 AI Tutor — 6 Levels of Depth
 
-<img src="resources/flow-tutor.png" alt="Tutor Levels" width="60%" style="border-radius:12px;"/>
+```mermaid
+flowchart LR
+    K["🧒 Kid<br/>Explain like I'm 5"] --> S["🏫 School<br/>Simple terms please"]
+    S --> HS["📚 High School<br/>Studying for finals"]
+    HS --> C["🎓 College<br/>Give me the full picture"]
+    C --> E["🔧 Engineering<br/>Technical deep-dive"]
+    E --> I["💼 Interview<br/>Make me job-ready"]
+```
 
 - 🔗 **Context-aware** — optionally use a PDF's content for grounded answers
 - 🔄 **Follow-up suggestions** — AI generates related questions to explore
