@@ -148,10 +148,11 @@ ollama serve
 ollama pull gemma4:12b
 ollama pull nomic-embed-text
 
-# 4. Start everything
-run_all.bat
-# Backend → http://localhost:8000
-# Frontend → http://localhost:3000
+# 4. Start both (two terminals)
+# Terminal 1:
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+# Terminal 2:
+cd frontend && npm run dev
 ```
 </details>
 
@@ -430,7 +431,8 @@ NoteSmith/
 ├── tests/                    # 17 pytest test suites
 ├── resources/                # README images, screenshots
 ├── setup.bat                 # One-click setup
-├── run_all.bat               # One-click launch
+├── run_backend.bat           # Start backend only
+├── run_frontend.bat          # Start frontend only
 └── .env.example              # Environment template
 ```
 
